@@ -58,7 +58,6 @@ SECURITY_REPORT.md
 SUPPLIERS_GUIDE.md
 
 # Render blueprint
-render.yaml
 
 # Tests (not needed in production image)
 tests/
