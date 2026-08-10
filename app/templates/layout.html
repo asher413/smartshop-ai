@@ -1,0 +1,593 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}סמארטשופ | בורסת הדילים החכמה{% endblock %}</title>
+    <meta name="description" content="{% block meta_description %}השוואת מחירים חכמה בסיוע טכנולוגי בין AliExpress, Amazon, eBay ו-Temu — הדילים החמים ביותר במקום אחד.{% endblock %}">
+    {% block og_tags %}
+    <meta property="og:title" content="סמארטשופ | בורסת הדילים החכמה">
+    <meta property="og:description" content="הדילים החמים ביותר מ-AliExpress, Amazon, eBay ועוד — מושווים אוטומטית ע\"י AI, במקום אחד.">
+    <meta property="og:type" content="website">
+    {% if site_url %}
+    <meta property="og:url" content="{{ site_url }}{{ request.url.path }}">
+    <meta property="og:image" content="{{ site_url }}/static/og-cover.png">
+    <meta property="og:locale" content="he_IL">
+    <meta property="og:site_name" content="סמארטשופ">
+    <meta name="twitter:title" content="סמארטשופ">
+    <meta name="twitter:description" content="הדילים החמים ביותר, מושווים אוטומטית ע\"י AI.">
+    <meta name="twitter:image" content="{{ site_url }}/static/og-cover.png">
+    <meta name="robots" content="index, follow">
+    {% endif %}
+    {% endblock %}
+    {% if site_url %}<link rel="canonical" href="{{ site_url }}{{ request.url.path }}">{% endif %}
+    {% if site_url %}
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org/",
+      "@graph": [
+        {
+          "@type": "Organization",
+          "name": "סמארטשופ",
+          "url": {{ site_url|tojson }},
+          "logo": {{ (site_url ~ "/static/logo.png")|tojson }}
+        },
+        {
+          "@type": "WebSite",
+          "name": "סמארטשופ",
+          "url": {{ site_url|tojson }},
+          "potentialAction": {
+            "@type": "SearchAction",
+            "target": {{ (site_url ~ "/search?q={search_term_string}")|tojson }},
+            "query-input": "required name=search_term_string"
+          }
+        }
+      ]
+    }
+    </script>
+    {% endif %}
+    {% block jsonld %}{% endblock %}
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="/static/css/design_system.css?v={{ static_version }}" rel="stylesheet">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22><i class="fa-solid fa-bag-shopping"></i></text></svg>">
+    <link rel="manifest" href="/static/manifest.json">
+    <meta name="theme-color" content="#1e293b">
+    <meta name="twitter:card" content="summary_large_image">
+    <!-- Google Fonts is a third-party (non-essential) resource: it is only
+         injected after the visitor accepts cookies. Until then the site
+         falls back to the system font stack — everything still works. -->
+</head>
+<body class="font-sans antialiased" style="background:var(--bg-page);color:var(--text-primary)">
+
+    <nav class="sticky top-0 z-40">
+        <!-- Row 1: logo | search+camera | account/cart -->
+        <div class="container mx-auto px-4 py-2 flex items-center justify-between gap-3">
+            <a href="/" class="ae-logo flex items-center gap-1 shrink-0">
+                סמארטשופ
+            </a>
+
+            <div class="hidden md:block flex-1 max-w-xl mx-auto">
+                <form action="/search" method="get" class="ae-search flex items-center pl-1 pr-4 py-1.5">
+                    <button type="button" onclick="openImageSearch()" class="ae-camera-btn w-9 h-9 flex items-center justify-center text-gray-500" title="חיפוש לפי תמונה" aria-label="חיפוש לפי תמונה">
+                        <i class="fa-solid fa-camera text-base"></i>
+                    </button>
+                    <input type="text" name="q" id="nav-search-input" autocomplete="off" placeholder="מה אתם מחפשים היום?" class="flex-1 bg-transparent border-none outline-none text-sm text-gray-900 placeholder-gray-500 min-w-0">
+                    <button type="submit" class="ae-search-btn w-9 h-9 flex items-center justify-center shrink-0" aria-label="חיפוש"><i class="fa-solid fa-magnifying-glass"></i></button>
+                </form>
+                <div id="search-suggestions" class="hidden absolute top-full mt-2 w-full max-w-xl glass-card overflow-hidden z-50"></div>
+            </div>
+
+            <div class="flex items-center gap-2">
+                <button onclick="toggleTheme()" class="ae-camera-btn w-10 h-10 flex items-center justify-center rounded-full text-gray-600 hover:bg-gray-100 transition" aria-label="שינוי ערכת נושא">
+                    <i id="theme-icon" class="fa-solid fa-moon"></i>
+                </button>
+                <div class="relative" id="notification-bell-wrap">                        <button id="notification-bell" class="ae-camera-btn relative w-10 h-10 flex items-center justify-center rounded-full text-gray-600 hover:bg-gray-100 transition" aria-label="התראות">
+                        <i class="fa-solid fa-bell"></i>
+                        <span id="notification-badge" class="hidden absolute -top-1 -left-1 bg-red-500 text-white text-[10px] font-bold min-w-[18px] h-[18px] px-1 rounded-full flex items-center justify-center"></span>
+                    </button>
+                    <div id="notification-dropdown" class="hidden absolute left-0 top-12 w-80 max-w-[calc(100vw-2rem)] glass-card overflow-hidden z-50 max-h-96 overflow-y-auto"></div>
+                    <!-- Push notification bell — subscribe to browser push -->
+                    <button id="push-bell-btn" onclick="requestPushPermission()" class="ae-camera-btn relative w-10 h-10 flex items-center justify-center rounded-full text-gray-600 hover:bg-gray-100 transition hidden" aria-label="התראות בדפדפן" title="קבלו דילים חמים ישירות לדפדפן">
+                        <i class="fa-solid fa-bell-concierge"></i>
+                    </button>
+                </div>
+
+                {% if request.session.get('user_email') %}
+                <span class="hidden lg:flex items-center gap-1.5 text-orange-600 text-sm font-bold px-3 py-2" title="המטבעות שלך"><i class="fa-solid fa-coins"></i> {{ request.session.get('user_points', 0) }}</span>
+                <div class="relative">
+                    <button onclick="toggleAccountMenu()" class="ae-account-btn flex items-center gap-2 rounded-full px-3 py-2 transition text-sm font-bold text-gray-800">
+                        <i class="fa-regular fa-circle-user text-2xl"></i>
+                        <span class="hidden sm:block">שלום, {{ request.session.get('user_email').split('@')[0] }}</span>
+                        <i class="fa-solid fa-chevron-down text-[10px] text-gray-400"></i>
+                    </button>
+                    <div id="account-menu" class="ae-account-menu">
+                        <div class="border-b border-gray-100 p-4">
+                            <a href="/personal-area" class="block w-full bg-gray-900 text-white text-center font-bold py-2.5 rounded-xl hover:bg-black transition">האזור האישי שלי</a>
+                            <p class="text-center text-xs text-gray-400 mt-2">{{ request.session.get('user_email') }}</p>
+                        </div>
+                        <div class="py-2">
+                            <a href="/personal-area" class="ae-account-item"><i class="fa-regular fa-file-lines w-5 text-gray-400"></i> ההזמנות שלי</a>
+                            <a href="/personal-area" class="ae-account-item"><i class="fa-solid fa-coins w-5 text-gray-400"></i> המטבעות שלי</a>
+                            <a href="/personal-area" class="ae-account-item"><i class="fa-regular fa-heart w-5 text-gray-400"></i> המועדפים שלי</a>
+                            <a href="/coupons" class="ae-account-item"><i class="fa-solid fa-ticket w-5 text-gray-400"></i> הקופונים שלי</a>
+                            <a href="/personal-area" class="ae-account-item"><i class="fa-solid fa-bell w-5 text-gray-400"></i> התראות מחיר</a>
+                        </div>
+                        <div class="border-t border-gray-100 py-2">
+                            <a href="/help" class="ae-account-item"><i class="fa-regular fa-circle-question w-5 text-gray-400"></i> מרכז עזרה</a>
+                            <a href="/privacy" class="ae-account-item"><i class="fa-solid fa-shield-halved w-5 text-gray-400"></i> מדיניות פרטיות</a>
+                            <form method="post" action="/logout">
+                                <button type="submit" class="ae-account-item w-full text-red-500"><i class="fa-solid fa-right-from-bracket w-5"></i> התנתקות</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+                {% else %}
+                <div class="relative">
+                    <button onclick="toggleAccountMenu()" class="ae-account-btn flex items-center gap-2 rounded-full px-3 py-2 transition text-sm font-bold text-gray-800">
+                        <i class="fa-regular fa-circle-user text-2xl"></i>
+                        <span class="hidden sm:block">ברוכים הבאים! <span class="block text-[11px] font-normal text-gray-500">התחבר / הרשמה</span></span>
+                        <i class="fa-solid fa-chevron-down text-[10px] text-gray-400"></i>
+                    </button>
+                    <div id="account-menu" class="ae-account-menu">
+                        <div class="p-4">
+                            <a href="/login" class="block w-full bg-gray-900 text-white text-center font-bold py-2.5 rounded-xl hover:bg-black transition">התחבר</a>
+                            <p class="text-center text-xs text-gray-400 mt-2">משתמש חדש? <a href="/signup" class="text-orange-500 font-bold">להירשם</a></p>
+                        </div>
+                        <div class="border-t border-gray-100 py-2">
+                            <a href="/personal-area" class="ae-account-item"><i class="fa-regular fa-file-lines w-5 text-gray-400"></i> ההזמנות שלי</a>
+                            <a href="/coupons" class="ae-account-item"><i class="fa-solid fa-ticket w-5 text-gray-400"></i> הקופונים שלי</a>
+                            <a href="/help" class="ae-account-item"><i class="fa-regular fa-circle-question w-5 text-gray-400"></i> מרכז עזרה</a>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Mobile search bar (phones/tablets only) -->
+        <div class="md:hidden container mx-auto px-4 pb-3">
+            <form action="/search" method="get" class="ae-search flex items-center pl-1 pr-4 py-1.5">
+                <button type="button" onclick="openImageSearch()" class="ae-camera-btn w-9 h-9 flex items-center justify-center text-gray-500" title="חיפוש לפי תמונה" aria-label="חיפוש לפי תמונה">
+                    <i class="fa-solid fa-camera text-base"></i>
+                </button>
+                <input type="text" name="q" id="nav-search-input-mobile" autocomplete="off" placeholder="מה אתם מחפשים היום?" class="flex-1 bg-transparent border-none outline-none text-sm text-gray-900 placeholder-gray-500 min-w-0">
+                <button type="submit" class="ae-search-btn w-9 h-9 flex items-center justify-center shrink-0" aria-label="חיפוש"><i class="fa-solid fa-magnifying-glass"></i></button>
+            </form>
+            <div id="search-suggestions-mobile" class="hidden absolute top-full mt-2 inset-x-4 glass-card overflow-hidden z-50"></div>
+        </div>
+
+        <!-- Row 2: כל הקטגוריות + category nav -->
+        <div class="border-t border-gray-100 bg-white">
+            <div class="container mx-auto px-4 py-1 flex items-center gap-3 overflow-x-auto">
+                <button onclick="toggleMegaMenu(true)" class="ae-cat-btn flex items-center gap-2 px-3 py-1.5 font-bold text-sm shrink-0">
+                    <i class="fa-solid fa-bars"></i> כל הקטגוריות
+                </button>
+                <a href="/" class="ae-cat-link {% if not active_category %}active{% endif %}">הכל</a>
+                {% for category in categories[:8] %}
+                <a href="/?category={{ category }}" class="ae-cat-link {% if active_category == category %}active{% endif %}">{{ category }}</a>
+                {% endfor %}
+                <a href="/coupons" class="ae-cat-link" style="font-weight:600"><i class="fa-solid fa-ticket" style="color:var(--accent-danger)"></i> קופונים</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Mega-menu (כל הקטגוריות) -->
+    <div id="ae-mega-overlay" class="ae-mega-overlay" onclick="toggleMegaMenu(false)"></div>
+    <aside id="ae-mega" class="ae-mega" aria-label="כל הקטגוריות">
+        <div class="flex items-center justify-between p-4 border-b border-gray-100">
+            <p class="font-black">כל הקטגוריות</p>
+            <button onclick="toggleMegaMenu(false)" class="w-8 h-8 rounded-full hover:bg-gray-100 transition" aria-label="סגירה">&times;</button>
+        </div>
+        <div class="flex-1 overflow-y-auto p-3" id="ae-mega-list">
+            {% for category in categories %}
+            <div class="ae-mega-row" onclick="toggleMegaCat(this)">
+                {% set thumb = category_thumbnails.get(category) if category_thumbnails else None %}{% if thumb %}<img src="{{ thumb }}" class="w-5 h-5 rounded object-cover" alt="{{ category }}" loading="lazy">{% else %}<i class="{{ category_icons.get(category, 'fa-solid fa-box') }}"></i>{% endif %}
+                <span class="flex-1">{{ category }}</span>
+                <i class="fa-solid fa-chevron-down text-[9px] text-gray-400"></i>
+            </div>
+            <div class="ae-mega-sub hidden">
+                {% for sub in category_subs.get(category, [])[:8] %}
+                <a href="/search?q={{ sub }}"><i class="{{ category_sub_icons.get(sub, 'fa-solid fa-tag') }} ml-1 text-xs opacity-60"></i> {{ sub }}</a>
+                {% endfor %}
+            </div>
+            {% endfor %}
+        </div>
+    </aside>
+
+    <main>
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- Mobile bottom nav spacer — adds bottom padding on mobile so content
+         doesn't get hidden behind the fixed bottom nav bar. -->
+    <div class="md:hidden h-14"></div>
+
+    <!-- Site-wide bottom ads (site_bottom position — every page) -->
+    <div id="site-bottom-ads" class="container mx-auto px-4 mb-8 hidden"></div>
+
+    <!-- Sticky side ad (site_side position — right rail on desktop) -->
+    <div id="site-side-ad" class="hidden lg:block fixed left-6 top-1/2 -translate-y-1/2 z-30 w-44"></div>
+
+    <footer class="border-t border-gray-200 bg-white text-gray-500 py-10 mt-16 text-sm">
+        <p class="text-center text-gray-700 font-bold text-base mb-4"><i class="fa-solid fa-check-circle text-green-600 ml-1"></i> אלפי משתמשים כבר חוסכים בקנייה חכמה</p>
+        <div class="payment-icons justify-center mb-4"><i class="fa-brands fa-cc-visa"></i> <i class="fa-brands fa-cc-mastercard"></i> <i class="fa-brands fa-cc-paypal"></i> <i class="fa-solid fa-lock"></i> <i class="fa-solid fa-shield-halved"></i></div>
+        <div class="container mx-auto px-4 sm:px-6 lg:px-8 max-w-2xl text-center space-y-4">
+            <h3 class="text-gray-900 font-bold">קבלו את הדילים החמים ביותר לתיבה <i class="fa-solid fa-envelope text-orange-500"></i></h3>
+            <form id="newsletter-form" class="flex gap-2">
+                <!-- Honeypot: invisible to humans, bots fill it and get silently dropped -->
+                <input type="text" name="website" id="newsletter-website" value="" tabindex="-1" autocomplete="off" aria-hidden="true" style="position:absolute;left:-9999px;width:1px;height:1px;opacity:0;">
+                <input type="email" id="newsletter-email" required placeholder="האימייל שלך..."
+                       class="flex-1 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-900 placeholder-gray-400 outline-none focus:ring-2 focus:ring-orange-500">
+                <button type="submit" class="btn-primary px-5 py-2 rounded-lg text-sm font-bold">הרשמה</button>
+            </form>
+            <p id="newsletter-message" class="text-xs"></p>
+            <p>סמארטשופ — בורסת דילים חכמה בסיוע מערכת השוואת מחירים מתקדמת.</p>
+            <p class="text-xs">{{ affiliate_disclosure or "האתר כולל קישורי שותפים (Affiliate). ייתכן שנקבל עמלה מרכישות דרך הקישורים שלנו, ללא עלות נוספת עבורך." }}</p>
+            <p class="text-[10px] text-gray-300">As an Amazon Associate I earn from qualifying purchases.</p>
+            <div class="flex justify-center gap-4 text-xs text-gray-500">
+                <a href="/help" class="hover:text-orange-500">מרכז עזרה</a>
+                <a href="/about" class="hover:text-orange-500">אודות</a>
+                <a href="/privacy" class="hover:text-orange-500">מדיניות פרטיות</a>
+                <a href="/terms" class="hover:text-orange-500">תנאי שימוש</a>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Floating chatbot -->
+    <div id="chat-widget" class="fixed bottom-6 left-6 z-50">
+                    <button id="chat-toggle-btn" onclick="toggleChat()" class="btn-primary p-4 rounded-2xl shadow-2xl hover:scale-105 transition-transform" aria-label="פתיחת צ'אט">
+            <i class="fa-solid fa-comments text-xl"></i>
+        </button>
+        <div id="chat-window" class="hidden absolute bottom-20 left-0 w-80 max-w-[calc(100vw-2rem)] glass-card overflow-hidden">
+            <div class="bg-indigo-600 p-4 font-bold text-white">צ'אט לייעוץ</div>
+            <div id="chat-history" class="h-64 p-4 overflow-y-auto text-sm flex flex-col gap-2"></div>
+            <div class="p-3 border-t border-gray-100">
+                <input type="text" id="chat-input" placeholder="שאל אותנו משהו..." class="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-900 outline-none focus:ring-2 focus:ring-orange-500">
+            </div>
+        </div>
+    </div>
+
+    <!-- ── Exit-intent popup: triggers when mouse leaves the page ── -->
+    <div id="exit-popup" class="fixed inset-0 z-[95] hidden items-center justify-center bg-gray-900/80 backdrop-blur-sm p-4">
+        <div class="glass-card max-w-sm w-full p-8 text-center relative border-2 border-amber-400/60 shadow-2xl" style="animation: exitBounceIn 0.35s ease">
+            <button onclick="dismissExitPopup()" class="absolute top-3 left-3 text-gray-400 hover:text-gray-600 text-xl" aria-label="סגירה">&times;</button>
+            <div class="text-5xl mb-3"><i class="fa-solid fa-gift text-amber-500"></i></div>
+            <h3 class="text-xl font-black mb-2">רגע! לפני שאתה עוזב...</h3>
+            <p class="text-sm text-gray-500 mb-2">יש לנו מתנת פרידה בשבילך!</p>
+            <div class="bg-amber-50 border border-amber-300 rounded-xl p-4 mb-5">
+                <p class="text-3xl font-black text-amber-600">5% הנחה</p>
+                <p class="text-xs text-amber-700 font-bold mt-1">קופון: BYE5</p>
+                <p class="text-[10px] text-gray-500 mt-2">הקופון תקף ל-24 שעות על כל הרכישות דרכנו</p>
+            </div>
+            <button onclick="exitPopupClaim()" class="btn-primary w-full py-3 rounded-xl font-bold text-sm">
+                תודה! אקח את הקופון <i class="fa-solid fa-ticket mr-1"></i>
+            </button>
+            <p class="text-[10px] text-gray-400 mt-3">הקופון נשמר אוטומטית — פשוט תמשיכו לגלוש</p>
+        </div>
+    </div>
+
+    <!-- Marketing popup (latest broadcast, once per browser) -->
+    <div id="marketing-popup" class="fixed inset-0 z-[70] hidden items-center justify-center bg-gray-900/70 backdrop-blur-sm p-4">
+        <div class="glass-card max-w-md w-full p-8 text-center relative border border-indigo-500/40 shadow-2xl">
+            <button onclick="dismissMarketingPopup()" class="absolute top-4 left-4 text-gray-400 hover:text-white transition text-xl" aria-label="סגירה">&times;</button>
+            <div class="text-5xl mb-4"><i class="fa-solid fa-fire"></i></div>
+            <h3 class="text-2xl font-black mb-3" id="popup-title"></h3>
+            <p class="text-gray-300 text-sm leading-relaxed mb-6" id="popup-message"></p>
+            <button onclick="marketingPopupAction()" class="btn-primary w-full py-3 rounded-xl font-bold" id="popup-action">לצפייה בדילים <i class="fa-solid fa-fire"></i></button>
+        </div>
+    </div>
+
+    <!-- Real (non-fabricated) social proof bubble -->
+    <div id="social-proof" class="fixed bottom-24 right-6 glass-card px-4 py-3 flex items-center gap-3 opacity-0 translate-y-4 transition-all duration-500 pointer-events-none">
+        <div class="bg-indigo-600 p-2 rounded-xl"><i class="fa-solid fa-bag-shopping"></i></div>
+        <p class="text-xs" id="social-proof-text"></p>
+    </div>
+
+    <!-- Cookie consent — modern preference banner. The site sets ONE
+         essential first-party cookie (session_id) for recommendations;
+         non-essential features (marketing popup, social proof, Google
+         Fonts) stay blocked until the visitor chooses "accept all".
+         The choice is saved so returning visitors never see it again. -->
+    <div id="cookie-consent" class="fixed bottom-4 inset-x-4 z-[80] hidden">
+        <div class="container mx-auto">
+            <div class="glass-card border border-white/10 shadow-2xl rounded-2xl p-5 sm:p-6 max-w-3xl mx-auto">
+                <div class="flex items-start gap-3 mb-3">
+                    <div class="text-2xl shrink-0"><i class="fa-solid fa-cookie-bite"></i></div>
+                    <div>
+                        <h3 class="font-black text-sm sm:text-base mb-1">העדפות פרטיות ועוגיות</h3>
+                        <p class="text-xs text-gray-500 leading-relaxed">
+                            אנו משתמשים בעוגיות <span class="text-gray-900 font-bold">הכרחיות</span> (זיהוי סשן אנונימי) כדי
+                            לזכור את המוצרים שצפיתם בהם ולהציג המלצות, ובכלים <span class="text-gray-900 font-bold">לא-הכרחיים</span>
+                            (חלונות מבצעים והודעות "קנו עכשיו") כדי לשפר את חוויית הקנייה.
+                            <a href="/privacy" class="underline text-orange-500">מדיניות פרטיות מלאה</a>
+                        </p>
+                    </div>
+                </div>
+                <div class="flex flex-col sm:flex-row gap-2 sm:gap-3">
+                    <button onclick="acceptEssentialCookies()" class="flex-1 glass-card px-4 py-2.5 rounded-xl text-sm font-bold hover:border-indigo-400/40 transition">
+                        הכרחיות בלבד
+                    </button>
+                    <button onclick="acceptAllCookies()" class="flex-1 btn-primary px-4 py-2.5 rounded-xl text-sm font-bold">
+                        קבל הכל <i class="fa-solid fa-check ml-1"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Image search modal (חיפוש לפי תמונה) -->
+    <div id="img-search-modal" class="ae-imgmodal-overlay" onclick="if(event.target===this)closeImageSearch()">
+        <div class="ae-imgmodal p-6">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="font-black text-lg">📷 חיפוש לפי תמונה</h3>
+                <button onclick="closeImageSearch()" class="w-8 h-8 rounded-full hover:bg-gray-100 transition text-lg" aria-label="סגירה">&times;</button>
+            </div>
+            <p class="text-xs text-gray-500 mb-4">העלו תמונה של מוצר ואנחנו נמצא מוצרים דומים בקטלוג שלנו. (JPG/PNG, עד 5MB) · החיפוש הראשון עשוי לקחת כמה רגעים.</p>
+            <label id="img-search-drop" class="block border-2 border-dashed border-gray-300 rounded-2xl p-8 text-center cursor-pointer hover:border-orange-400 transition">
+                <input type="file" id="img-search-file" accept="image/*" class="hidden" onchange="submitImageSearch()">
+                <i class="fa-solid fa-cloud-arrow-up text-3xl text-gray-400 mb-2"></i>
+                <p class="text-sm font-bold text-gray-700">לחצו לבחירת תמונה מהמכשיר</p>
+                <p class="text-xs text-gray-400 mt-1">או גררו לכאן</p>
+            </label>
+            <div id="img-search-status" class="text-sm text-center mt-4 hidden"><i class="fa-solid fa-spinner fa-spin"></i> מחפשים מוצרים דומים...</div>
+            <div id="img-search-results" class="mt-4 grid grid-cols-2 gap-3"></div>
+        </div>
+    </div>
+
+    <script>
+    // ---- Theme toggle (dark/light, persisted in localStorage) ----
+    (function() {
+        const saved = localStorage.getItem('theme');
+        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        const theme = saved || 'light';
+        document.documentElement.setAttribute('data-theme', theme);
+        const icon = document.getElementById('theme-icon');
+        if (icon) icon.className = 'fa-solid ' + (theme === 'dark' ? 'fa-sun' : 'fa-moon') + ' text-sm';
+    })();
+    function toggleTheme() {
+        const el = document.documentElement;
+        const current = el.getAttribute('data-theme');
+        const next = current === 'dark' ? 'light' : 'dark';
+        el.setAttribute('data-theme', next);
+        localStorage.setItem('theme', next);
+        const icon = document.getElementById('theme-icon');
+        const label = document.getElementById('theme-label');
+        if (icon) icon.className = 'fa-solid ' + (next === 'dark' ? 'fa-sun' : 'fa-moon');
+        if (label) label.textContent = next === 'dark' ? 'עבור למצב בהיר' : 'עבור למצב כהה';
+    }
+
+    // ---- Category mega-menu + account dropdown ----
+    function toggleMegaMenu(open) {
+        document.getElementById('ae-mega').classList.toggle('open', open);
+        document.getElementById('ae-mega-overlay').classList.toggle('open', open);
+        document.body.style.overflow = open ? 'hidden' : '';
+    }
+    function toggleMegaCat(row) {
+        const sub = row.nextElementSibling;
+        const caret = row.querySelector('i');
+        if (sub) {
+            const opening = sub.classList.contains('hidden');
+            // Close ALL other open subs first (only one open at a time)
+            document.querySelectorAll('.ae-mega-sub:not(.hidden)').forEach(s => {
+                if (s !== sub) { s.classList.add('hidden'); s.previousElementSibling?.classList.remove('active'); }
+            });
+            sub.classList.toggle('hidden');
+            row.classList.toggle('active', opening);
+            caret.style.transform = opening ? 'rotate(180deg)' : '';
+        }
+    }
+    function toggleAccountMenu() {
+        document.querySelectorAll('.ae-account-menu').forEach(m => m.classList.toggle('open'));
+    }
+    document.addEventListener('click', (e) => {
+        if (!e.target.closest('.ae-account-btn') && !e.target.closest('.ae-account-menu')) {
+            document.querySelectorAll('.ae-account-menu').forEach(m => m.classList.remove('open'));
+        }
+    });
+
+    // ---- Image search ----
+    function openImageSearch() {
+        document.getElementById('img-search-modal').classList.add('open');
+        document.getElementById('img-search-results').innerHTML = '';
+        document.getElementById('img-search-status').classList.add('hidden');
+        document.getElementById('img-search-file').value = '';
+        document.body.style.overflow = 'hidden';
+    }
+    function closeImageSearch() {
+        document.getElementById('img-search-modal').classList.remove('open');
+        document.body.style.overflow = '';
+    }
+    // Drag-and-drop onto the upload box.
+    const dropZone = document.getElementById('img-search-drop');
+    if (dropZone) {
+        ['dragover', 'dragenter'].forEach(ev => dropZone.addEventListener(ev, e => {
+            e.preventDefault(); dropZone.classList.add('border-orange-400');
+        }));
+        ['dragleave', 'drop'].forEach(ev => dropZone.addEventListener(ev, e => {
+            e.preventDefault(); dropZone.classList.remove('border-orange-400');
+        }));
+        dropZone.addEventListener('drop', e => {
+            const f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+            if (f) { document.getElementById('img-search-file').files = e.dataTransfer.files; submitImageSearch(); }
+        });
+    }
+    async function submitImageSearch() {
+        const fileInput = document.getElementById('img-search-file');
+        const statusEl = document.getElementById('img-search-status');
+        const resultsEl = document.getElementById('img-search-results');
+        if (!fileInput.files || !fileInput.files[0]) return;
+        const file = fileInput.files[0];
+        if (file.size > 5 * 1024 * 1024) { alert('התמונה גדולה מדי (עד 5MB)'); return; }
+        statusEl.classList.remove('hidden');
+        resultsEl.innerHTML = '';
+        const fd = new FormData();
+        fd.append('image', file);
+        try {
+            const res = await fetch('/api/image-search', { method: 'POST', body: fd });
+            const data = await res.json();
+            statusEl.classList.add('hidden');
+            if (!data.products || !data.products.length) {
+                resultsEl.innerHTML = '<p class="col-span-2 text-center text-sm text-gray-500">לא מצאנו מוצרים דומים לתמונה זו <i class="fa-solid fa-face-frown"></i> — נסו תמונה אחרת או חיפוש טקסטואלי.</p>';
+                return;
+            }
+            resultsEl.innerHTML = data.products.map(p =>
+                `<a href="/product/${p.id}" class="glass-card p-2 block">` +
+                `<img src="${escapeHtml(p.image_url || '')}" class="w-full h-24 object-cover rounded-lg mb-1">` +
+                `<p class="text-[11px] font-bold truncate">${escapeHtml(p.name)}</p>` +
+                `<p class="text-orange-600 font-black text-xs">₪${Math.round(p.price || 0)}</p></a>`
+            ).join('');
+        } catch (e) {
+            statusEl.classList.add('hidden');
+            resultsEl.innerHTML = '<p class="col-span-2 text-center text-sm text-red-500">שגיאה בחיפוש התמונה — נסו שוב.</p>';
+        }
+    }
+    </script>
+    <script src="/static/js/main.js?v={{ static_version }}"></script>
+
+    <!-- ── Count-up animation for savings counters ── -->
+    <script>
+    (function() {
+        function animateCountUp(el) {
+            var target = parseInt(el.dataset.countTarget || '0');
+            if (!target || target <= 0) return;
+            var duration = 1500;
+            var start = 0;
+            var startTime = null;
+            function step(ts) {
+                if (!startTime) startTime = ts;
+                var progress = Math.min((ts - startTime) / duration, 1);
+                var eased = 1 - Math.pow(1 - progress, 3);
+                var current = Math.round(start + (target - start) * eased);
+                el.textContent = current.toLocaleString('he-IL');
+                if (progress < 1) requestAnimationFrame(step);
+            }
+            requestAnimationFrame(step);
+        }
+        var observer = new IntersectionObserver(function(entries) {
+            entries.forEach(function(entry) {
+                if (entry.isIntersecting) {
+                    animateCountUp(entry.target);
+                    observer.unobserve(entry.target);
+                }
+            });
+        }, { threshold: 0.3 });
+        document.querySelectorAll('[data-count-target]').forEach(function(el) {
+            observer.observe(el);
+        });
+    })();
+    </script>
+
+    <!-- PWA: Service Worker registration + install prompt -->
+    <script>
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('/static/sw.js').catch(() => {});
+    }
+    // Install prompt (deferred — only after meaningful interaction)
+    let deferredPrompt = null;
+    window.addEventListener('beforeinstallprompt', (e) => {
+        e.preventDefault();
+        deferredPrompt = e;
+        // Show after 30 seconds on site
+        setTimeout(() => {
+            if (deferredPrompt && !localStorage.getItem('pwa-dismissed')) {
+                const bar = document.getElementById('pwa-install-bar');
+                if (bar) bar.classList.remove('hidden');
+            }
+        }, 30000);
+    });
+    function installPWA() {
+        if (deferredPrompt) {
+            deferredPrompt.prompt();
+            deferredPrompt.userChoice.then(() => { deferredPrompt = null; });
+        }
+        document.getElementById('pwa-install-bar').classList.add('hidden');
+    }
+    function dismissPWA() {
+        document.getElementById('pwa-install-bar').classList.add('hidden');
+        localStorage.setItem('pwa-dismissed', '1');
+    }
+    </script>
+
+    <!-- ── Bottom Mobile Navigation Bar ── -->
+    <!-- Always visible on mobile (md:hidden), pinned to the bottom with safe-area
+         inset so it works on notched iPhones. 5 tabs: home, search, favorites,
+         chat, account. Active tab gets the accent color. -->
+    <nav class="mobile-bottom-nav md:hidden fixed bottom-0 inset-x-0 z-[85] bg-white border-t border-gray-200 shadow-[0_-2px_12px_rgba(0,0,0,0.06)]" style="padding-bottom:env(safe-area-inset-bottom,0)">
+        <div class="flex items-center justify-around h-14">
+            <a href="/" class="mob-nav-item flex flex-col items-center gap-0.5 text-[10px] font-bold text-gray-400 hover:text-gray-800 transition active">
+                <i class="fa-solid fa-house text-lg"></i>
+                <span>דף הבית</span>
+            </a>
+            <button onclick="focusMobileSearch()" class="mob-nav-item flex flex-col items-center gap-0.5 text-[10px] font-bold text-gray-400 hover:text-gray-800 transition">
+                <i class="fa-solid fa-magnifying-glass text-lg"></i>
+                <span>חיפוש</span>
+            </button>
+            <a href="/personal-area#favorites" class="mob-nav-item flex flex-col items-center gap-0.5 text-[10px] font-bold text-gray-400 hover:text-gray-800 transition">
+                <i class="fa-regular fa-heart text-lg"></i>
+                <span>מועדפים</span>
+            </a>
+            <button onclick="toggleChat()" class="mob-nav-item flex flex-col items-center gap-0.5 text-[10px] font-bold text-gray-400 hover:text-gray-800 transition">
+                <i class="fa-solid fa-comments text-lg"></i>
+                <span>צ'אט</span>
+            </button>
+            <a href="/personal-area" class="mob-nav-item flex flex-col items-center gap-0.5 text-[10px] font-bold text-gray-400 hover:text-gray-800 transition">
+                <i class="fa-regular fa-circle-user text-lg"></i>
+                <span>אזור אישי</span>
+            </a>
+        </div>
+    </nav>
+
+    <!-- ── Daily Spin Wheel (gamification) ── -->
+    <div id="spin-wheel-overlay" class="fixed inset-0 z-[90] hidden items-center justify-center bg-gray-900/80 backdrop-blur-sm p-4" onclick="if(event.target===this)closeSpinWheel()">
+        <div class="glass-card max-w-sm w-full p-6 text-center relative">
+            <button onclick="closeSpinWheel()" class="absolute top-3 left-3 text-gray-400 hover:text-gray-600 text-xl" aria-label="סגירה">&times;</button>
+            <h3 class="font-black text-xl mb-2"><i class="fa-solid fa-trophy text-amber-500"></i> גלגל המזל היומי</h3>
+            <p class="text-sm text-gray-500 mb-4" id="spin-result">סובבו וזכו במטבעות, קופונים והטבות!</p>
+            <div class="relative w-48 h-48 mx-auto mb-4" id="spin-wheel-wrap">
+                <canvas id="spin-canvas" width="192" height="192" class="w-full h-full"></canvas>
+                <button onclick="spinTheWheel()" id="spin-btn" class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-14 h-14 rounded-full bg-white shadow-lg border-4 border-amber-400 flex items-center justify-center font-black text-xs text-amber-600 hover:scale-105 transition-transform">
+                    SPIN
+                </button>
+            </div>
+            <p class="text-[10px] text-gray-400">ניתן לסובב פעם אחת ביום • המתנה תתווסף אוטומטית לחשבונך</p>
+        </div>
+    </div>
+
+    <!-- ── Scroll-to-top button ── -->
+    <button id="scroll-to-top" onclick="window.scrollTo({top:0,behavior:'smooth'})" aria-label="חזרה למעלה" title="חזרה למעלה">
+        <i class="fa-solid fa-arrow-up"></i>
+    </button>
+    <script>
+    (function() {
+        var btn = document.getElementById('scroll-to-top');
+        if (!btn) return;
+        var ticking = false;
+        window.addEventListener('scroll', function() {
+            if (!ticking) {
+                requestAnimationFrame(function() {
+                    btn.classList.toggle('visible', window.scrollY > 500);
+                    ticking = false;
+                });
+                ticking = true;
+            }
+        });
+    })();
+    </script>
+
+    <!-- PWA install banner (bottom bar) -->
+    <div id="pwa-install-bar" class="hidden fixed bottom-0 inset-x-0 z-[75] bg-white border-t border-gray-200 shadow-lg px-4 py-3 flex items-center justify-between gap-3">
+        <div class="flex items-center gap-3">
+            <span class="text-2xl"><i class="fa-solid fa-mobile-screen-button"></i></span>
+            <div>
+                <p class="font-bold text-sm text-gray-900">התקינו את סמארטשופ כאפליקציה</p>
+                <p class="text-xs text-gray-500">גישה מהירה, גם בלי אינטרנט</p>
+            </div>
+        </div>
+        <div class="flex items-center gap-2">
+            <button onclick="dismissPWA()" class="text-xs text-gray-400 px-2 py-1">לא עכשיו</button>
+            <button onclick="installPWA()" class="btn-primary px-5 py-2 rounded-lg text-sm font-bold">התקנה</button>
+        </div>
+    </div>
+</body>
+</html>

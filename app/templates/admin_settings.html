@@ -1,0 +1,458 @@
+{% extends "layout.html" %}
+{% block title %}הגדרות | סמארטשופ{% endblock %}
+{% block content %}
+<div class="container mx-auto px-4 py-10 max-w-4xl space-y-6">
+    <div class="flex justify-between items-center flex-wrap gap-3">
+        <div>
+            <h1 class="text-3xl font-bold">⚙️ הגדרות האתר</h1>
+            <p class="text-sm text-gray-400 mt-1">ניהול מפתחות וחיבורים בלי לגעת בקובץ .env — נשמר ונכנס לתוקף מיידית.</p>
+        </div>
+        <div class="flex gap-2">
+            <a href="/admin" class="glass-card px-4 py-2 rounded-lg text-sm font-bold hover:border-indigo-400/40 transition">← ללוח הבקרה</a>
+        </div>
+    </div>
+
+    <p id="save-status" class="text-sm"></p>
+
+    <!-- Quick "where do I get the keys" guide -->
+    <div class="glass-card p-5 border border-indigo-500/20">
+        <details>
+            <summary class="cursor-pointer font-bold text-sm text-indigo-300 flex items-center gap-2">
+                <i class="fa-solid fa-circle-question"></i> איפה מקבלים כל מפתח? (מדריך מהיר)
+            </summary>
+            <div class="mt-3 text-xs text-gray-300 space-y-2 leading-relaxed">
+                <p>🤖 <b>שירות (Gemini)</b> — aistudio.google.com → בחרו פרויקט → Create API key (חינם). מדגם: <code class="text-indigo-300">AIza...</code></p>
+                <p>📧 <b>SMTP</b> — נפוצים: Gmail (myaccount.google.com → אבטחה → App passwords, יש צורך ב-2FA), Brevo (free 300 מיילים/יום), Resend, SendGrid.</p>
+                <p>📸 <b>אינסטגרם</b> — developers.facebook.com → אפליקציה → Instagram API → לכאלה עם חשבון עסקי; טוקן ארוך-טווח מ-Graph API Explorer.</p>
+                <p>🛫 <b>AliExpress</b> — portals.aliexpress.com → Affiliate Program (אישור 1–3 ימים) → AliOpen → Create App → App Key/Secret + Tracking ID.</p>
+                <p>📦 <b>eBay</b> — developer.ebay.com (App ID + Cert ID, חינם מיידי) + epn.ebay.com ל-Campaign ID של עמלות.</p>
+                <p>🛒 <b>Amazon</b> — affiliate-program.amazon.com → Partner Tag מיד; PA-API Keys אחרי 3 מכירות/180 יום (اپسilon.amazon.com / PA-API v5).</p>
+                <p>🌐 <b>Awin / CJ</b> — awin.com / cj.com → הצטרפות → API token מהדשבורד (Awin: Settings → API credentials; CJ: API v3 → Bearer token).</p>
+                <p>🛍️ <b>Rakuten Advertising</b> — rakutenadvertising.com / developers.rakutenadvertising.com → Developer Portal → API Credentials (Client ID + Secret) + Site ID (Account ID). הרשת של Etsy ומותגים גדולים.</p>
+                <p>🔑 <b>Google OAuth (התחברות עם Google)</b> — console.cloud.google.com → Credentials → OAuth Client ID (Web) → Client ID + Secret. הוסיפו ב"Authorized redirect URIs" את <code class="text-indigo-300">{{ site_url or 'https://האתר-שלך' }}/auth/google/callback</code></p>
+                <p>📦 <b>Temu</b> — תוכנית שותפים (temu.com → affiliate) → Affiliate ID; אין API ציבורי — האתר משתמש בו לפרמטר מעקב בלבד.</p>
+                <p>🚚 <b>17TRACK</b> — 17track.net → API Key (למעקב משלוחים). ✈️ <b>טלגרם</b> — @BotFather → /newbot → Bot Token, ו-Chat ID מ-@userinfobot.</p>
+                <p class="text-indigo-300 pt-1">📄 המדריך המלא והמפורט (צעד-צעד עם צילומי מסך) שמור בפרויקט בקובץ <b>SUPPLIERS_GUIDE.md</b>.</p>
+            </div>
+        </details>
+    </div>
+
+    <form id="settings-form" class="space-y-6">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+
+        <!-- ============ AI ============ -->
+        <div class="glass-card p-6">
+            <div class="flex justify-between items-center flex-wrap gap-2 mb-4">
+                <h2 class="font-bold text-lg">🤖 שירות (Gemini)</h2>
+                <button type="button" onclick="testConnection('ai', this)" class="btn-primary px-4 py-2 rounded-lg text-xs font-bold">🔌 בדוק חיבור</button>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="md:col-span-2">
+                    <label class="block text-xs text-gray-400 mb-1">GOOGLE_API_KEY — מפתח Gemini (חינם מ-Google AI Studio)</label>
+                    <input type="password" name="GOOGLE_API_KEY" value="" placeholder="{{ values.get('GOOGLE_API_KEY') or 'לא הוגדר — הזינו מפתח...' }}"
+                           class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-500" autocomplete="off">
+                    <label class="flex items-center gap-2 mt-1 text-xs text-gray-400"><input type="checkbox" name="GOOGLE_API_KEY__clear" class="accent-indigo-500"> מחק את המפתח הקיים</label>
+                </div>
+                <div>
+                    <label class="block text-xs text-gray-400 mb-1">GEMINI_MODEL — מודל הבינה</label>
+                    <input type="text" name="GEMINI_MODEL" value="{{ values.get('GEMINI_MODEL') }}"
+                           class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-500">
+                </div>
+            </div>
+        </div>
+
+        <!-- ============ SMTP ============ -->
+        <div class="glass-card p-6">
+            <div class="flex justify-between items-center flex-wrap gap-2 mb-4">
+                <h2 class="font-bold text-lg">📧 SMTP — אימיילים וניוזלטר</h2>
+                <button type="button" onclick="testConnection('smtp', this)" class="btn-primary px-4 py-2 rounded-lg text-xs font-bold">🔌 בדוק חיבור</button>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-xs text-gray-400 mb-1">SMTP_HOST</label>
+                    <input type="text" name="SMTP_HOST" value="{{ values.get('SMTP_HOST') }}" placeholder="smtp-relay.brevo.com"
+                           class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-500">
+                </div>
+                <div>
+                    <label class="block text-xs text-gray-400 mb-1">SMTP_PORT</label>
+                    <input type="number" name="SMTP_PORT" value="{{ values.get('SMTP_PORT') }}" placeholder="587"
+                           class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-500">
+                </div>
+                <div>
+                    <label class="block text-xs text-gray-400 mb-1">SMTP_USER</label>
+                    <input type="text" name="SMTP_USER" value="{{ values.get('SMTP_USER') }}"
+                           class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-500">
+                </div>
+                <div>
+                    <label class="block text-xs text-gray-400 mb-1">SMTP_PASSWORD</label>
+                    <input type="password" name="SMTP_PASSWORD" value="" placeholder="{{ values.get('SMTP_PASSWORD') or 'לא הוגדר...' }}"
+                           class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-500" autocomplete="off">
+                    <label class="flex items-center gap-2 mt-1 text-xs text-gray-400"><input type="checkbox" name="SMTP_PASSWORD__clear" class="accent-indigo-500"> מחק את הסיסמה הקיימת</label>
+                </div>
+                <div>
+                    <label class="block text-xs text-gray-400 mb-1">SMTP_FROM_EMAIL</label>
+                    <input type="text" name="SMTP_FROM_EMAIL" value="{{ values.get('SMTP_FROM_EMAIL') }}" placeholder="no-reply@yourdomain.com"
+                           class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-500">
+                </div>
+                <div>
+                    <label class="block text-xs text-gray-400 mb-1">SMTP_FROM_NAME</label>
+                    <input type="text" name="SMTP_FROM_NAME" value="{{ values.get('SMTP_FROM_NAME') }}"
+                           class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-500">
+                </div>
+            </div>
+        </div>
+
+        <!-- ============ Instagram ============ -->
+        <div class="glass-card p-6">
+            <div class="flex justify-between items-center flex-wrap gap-2 mb-4">
+                <h2 class="font-bold text-lg">📸 אינסטגרם — פרסום אוטומטי</h2>
+                <button type="button" onclick="testConnection('instagram', this)" class="btn-primary px-4 py-2 rounded-lg text-xs font-bold">🔌 בדוק חיבור</button>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="md:col-span-2">
+                    <label class="block text-xs text-gray-400 mb-1">INSTAGRAM_ACCESS_TOKEN — טוקן ארוך-טווח (מדריך מלא ב-README)</label>
+                    <input type="password" name="INSTAGRAM_ACCESS_TOKEN" value="" placeholder="{{ values.get('INSTAGRAM_ACCESS_TOKEN') or 'לא הוגדר...' }}"
+                           class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-500" autocomplete="off">
+                    <label class="flex items-center gap-2 mt-1 text-xs text-gray-400"><input type="checkbox" name="INSTAGRAM_ACCESS_TOKEN__clear" class="accent-indigo-500"> מחק את הטוקן הקיים</label>
+                </div>
+                <div class="md:col-span-2">
+                    <label class="block text-xs text-gray-400 mb-1">INSTAGRAM_ACCOUNT_ID — מזהה חשבון האינסטגרם העסקי</label>
+                    <input type="text" name="INSTAGRAM_ACCOUNT_ID" value="{{ values.get('INSTAGRAM_ACCOUNT_ID') }}"
+                           class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-500">
+                </div>
+            </div>
+        </div>
+
+        <!-- ============ Suppliers ============ -->
+        <div class="glass-card p-6">
+            <h2 class="font-bold text-lg mb-1">🛒 ספקים — מפתחות שותפים (קישורי עמלה)</h2>
+            <p class="text-xs text-gray-400 mb-4">הכניסו כאן את כל הטוקנים והקישורים של הספקים — המדריך המלא לקבלתם נמצא ב-README (חלק: חיבור ספקים אמיתי).</p>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                <div class="md:col-span-2">
+                    <div class="flex justify-between items-center mb-2">
+                        <p class="font-bold text-sm text-indigo-300">🛫 AliExpress Affiliate</p>
+                        <button type="button" onclick="testConnection('aliexpress', this)" class="btn-primary px-3 py-1.5 rounded-lg text-xs font-bold">🔌 בדוק חיבור</button>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                        <div>
+                            <label class="block text-xs text-gray-400 mb-1">ALIEXPRESS_APP_KEY</label>
+                            <input type="password" name="ALIEXPRESS_APP_KEY" value="" placeholder="{{ values.get('ALIEXPRESS_APP_KEY') or 'לא הוגדר...' }}" class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-500" autocomplete="off">
+                            <label class="flex items-center gap-2 mt-1 text-xs text-gray-400"><input type="checkbox" name="ALIEXPRESS_APP_KEY__clear" class="accent-indigo-500"> מחק</label>
+                        </div>
+                        <div>
+                            <label class="block text-xs text-gray-400 mb-1">ALIEXPRESS_APP_SECRET</label>
+                            <input type="password" name="ALIEXPRESS_APP_SECRET" value="" placeholder="{{ values.get('ALIEXPRESS_APP_SECRET') or 'לא הוגדר...' }}" class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-500" autocomplete="off">
+                            <label class="flex items-center gap-2 mt-1 text-xs text-gray-400"><input type="checkbox" name="ALIEXPRESS_APP_SECRET__clear" class="accent-indigo-500"> מחק</label>
+                        </div>
+                        <div>
+                            <label class="block text-xs text-gray-400 mb-1">ALIEXPRESS_TRACKING_ID</label>
+                            <input type="text" name="ALIEXPRESS_TRACKING_ID" value="{{ values.get('ALIEXPRESS_TRACKING_ID') }}" placeholder="default" class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-500">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="md:col-span-2">
+                    <div class="flex justify-between items-center mb-2">
+                        <p class="font-bold text-sm text-indigo-300">📦 eBay</p>
+                        <button type="button" onclick="testConnection('ebay', this)" class="btn-primary px-3 py-1.5 rounded-lg text-xs font-bold">🔌 בדוק חיבור</button>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                        <div>
+                            <label class="block text-xs text-gray-400 mb-1">EBAY_APP_ID</label>
+                            <input type="password" name="EBAY_APP_ID" value="" placeholder="{{ values.get('EBAY_APP_ID') or 'לא הוגדר...' }}" class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-500" autocomplete="off">
+                            <label class="flex items-center gap-2 mt-1 text-xs text-gray-400"><input type="checkbox" name="EBAY_APP_ID__clear" class="accent-indigo-500"> מחק</label>
+                        </div>
+                        <div>
+                            <label class="block text-xs text-gray-400 mb-1">EBAY_CERT_ID</label>
+                            <input type="password" name="EBAY_CERT_ID" value="" placeholder="{{ values.get('EBAY_CERT_ID') or 'לא הוגדר...' }}" class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-500" autocomplete="off">
+                            <label class="flex items-center gap-2 mt-1 text-xs text-gray-400"><input type="checkbox" name="EBAY_CERT_ID__clear" class="accent-indigo-500"> מחק</label>
+                        </div>
+                        <div>
+                            <label class="block text-xs text-gray-400 mb-1">EBAY_CAMPAIGN_ID (מ-ePN)</label>
+                            <input type="text" name="EBAY_CAMPAIGN_ID" value="{{ values.get('EBAY_CAMPAIGN_ID') }}" class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-500">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="md:col-span-2">
+                    <div class="flex justify-between items-center mb-2">
+                        <p class="font-bold text-sm text-indigo-300">🛒 Amazon Associates (PA-API)</p>
+                        <button type="button" onclick="testConnection('amazon', this)" class="btn-primary px-3 py-1.5 rounded-lg text-xs font-bold">🔌 בדוק חיבור</button>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                        <div>
+                            <label class="block text-xs text-gray-400 mb-1">AMAZON_PARTNER_TAG</label>
+                            <input type="text" name="AMAZON_PARTNER_TAG" value="{{ values.get('AMAZON_PARTNER_TAG') }}" class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-500">
+                        </div>
+                        <div>
+                            <label class="block text-xs text-gray-400 mb-1">AMAZON_PAAPI_ACCESS_KEY</label>
+                            <input type="password" name="AMAZON_PAAPI_ACCESS_KEY" value="" placeholder="{{ values.get('AMAZON_PAAPI_ACCESS_KEY') or 'לא הוגדר...' }}" class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-500" autocomplete="off">
+                            <label class="flex items-center gap-2 mt-1 text-xs text-gray-400"><input type="checkbox" name="AMAZON_PAAPI_ACCESS_KEY__clear" class="accent-indigo-500"> מחק</label>
+                        </div>
+                        <div>
+                            <label class="block text-xs text-gray-400 mb-1">AMAZON_PAAPI_SECRET_KEY</label>
+                            <input type="password" name="AMAZON_PAAPI_SECRET_KEY" value="" placeholder="{{ values.get('AMAZON_PAAPI_SECRET_KEY') or 'לא הוגדר...' }}" class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-500" autocomplete="off">
+                            <label class="flex items-center gap-2 mt-1 text-xs text-gray-400"><input type="checkbox" name="AMAZON_PAAPI_SECRET_KEY__clear" class="accent-indigo-500"> מחק</label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="md:col-span-2">
+                    <p class="font-bold text-sm text-indigo-300 mb-2">🌐 רשתות שותפים: Awin + CJ</p>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <div class="bg-white/5 rounded-xl p-3">
+                            <div class="flex justify-between items-center mb-2">
+                                <p class="font-bold text-xs">Awin</p>
+                                <button type="button" onclick="testConnection('awin', this)" class="btn-primary px-3 py-1.5 rounded-lg text-xs font-bold">🔌 בדוק</button>
+                            </div>
+                            <label class="block text-xs text-gray-400 mb-1">AWIN_API_TOKEN</label>
+                            <input type="password" name="AWIN_API_TOKEN" value="" placeholder="{{ values.get('AWIN_API_TOKEN') or 'לא הוגדר...' }}" class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-500 mb-2" autocomplete="off">
+                            <label class="flex items-center gap-2 mt-1 text-xs text-gray-400"><input type="checkbox" name="AWIN_API_TOKEN__clear" class="accent-indigo-500"> מחק</label>
+                            <label class="block text-xs text-gray-400 mb-1 mt-2">AWIN_PUBLISHER_ID</label>
+                            <input type="text" name="AWIN_PUBLISHER_ID" value="{{ values.get('AWIN_PUBLISHER_ID') }}" class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-500">
+                        </div>
+                        <div class="bg-white/5 rounded-xl p-3">
+                            <div class="flex justify-between items-center mb-2">
+                                <p class="font-bold text-xs">CJ Affiliate</p>
+                                <button type="button" onclick="testConnection('cj', this)" class="btn-primary px-3 py-1.5 rounded-lg text-xs font-bold">🔌 בדוק</button>
+                            </div>
+                            <label class="block text-xs text-gray-400 mb-1">CJ_API_TOKEN</label>
+                            <input type="password" name="CJ_API_TOKEN" value="" placeholder="{{ values.get('CJ_API_TOKEN') or 'לא הוגדר...' }}" class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-500 mb-2" autocomplete="off">
+                            <label class="flex items-center gap-2 mt-1 text-xs text-gray-400"><input type="checkbox" name="CJ_API_TOKEN__clear" class="accent-indigo-500"> מחק</label>
+                            <label class="block text-xs text-gray-400 mb-1 mt-2">CJ_COMPANY_ID</label>
+                            <input type="text" name="CJ_COMPANY_ID" value="{{ values.get('CJ_COMPANY_ID') }}" class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-500">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="md:col-span-2">
+                    <div class="flex justify-between items-center mb-2">
+                        <p class="font-bold text-sm text-indigo-300">🛍️ Rakuten Advertising (רשת — Etsy, Sephora ועוד)</p>
+                        <button type="button" onclick="testConnection('rakuten', this)" class="btn-primary px-3 py-1.5 rounded-lg text-xs font-bold">🔌 בדוק חיבור</button>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                        <div>
+                            <label class="block text-xs text-gray-400 mb-1">RAKUTEN_CLIENT_ID — App Key/Client ID</label>
+                            <input type="password" name="RAKUTEN_CLIENT_ID" value="" placeholder="{{ values.get('RAKUTEN_CLIENT_ID') or 'לא הוגדר...' }}" class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-500" autocomplete="off">
+                            <label class="flex items-center gap-2 mt-1 text-xs text-gray-400"><input type="checkbox" name="RAKUTEN_CLIENT_ID__clear" class="accent-indigo-500"> מחק</label>
+                        </div>
+                        <div>
+                            <label class="block text-xs text-gray-400 mb-1">RAKUTEN_CLIENT_SECRET</label>
+                            <input type="password" name="RAKUTEN_CLIENT_SECRET" value="" placeholder="{{ values.get('RAKUTEN_CLIENT_SECRET') or 'לא הוגדר...' }}" class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-500" autocomplete="off">
+                            <label class="flex items-center gap-2 mt-1 text-xs text-gray-400"><input type="checkbox" name="RAKUTEN_CLIENT_SECRET__clear" class="accent-indigo-500"> מחק</label>
+                        </div>
+                        <div>
+                            <label class="block text-xs text-gray-400 mb-1">RAKUTEN_ACCOUNT_ID — Network/Site ID</label>
+                            <input type="text" name="RAKUTEN_ACCOUNT_ID" value="{{ values.get('RAKUTEN_ACCOUNT_ID') }}" class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-500">
+                        </div>
+                    </div>
+                    <p class="text-[11px] text-gray-500 mt-1">מדריך: developers.rakutenadvertising.com → היכנסו עם חשבון השותפים → API Credentials → Client ID/Secret + Site ID. Etsy ומותגים גדולים עברו לרשת הזו.</p>
+                </div>
+
+                <div>
+                    <label class="block text-xs text-gray-400 mb-1">TEMU_AFFILIATE_ID</label>
+                    <input type="text" name="TEMU_AFFILIATE_ID" value="{{ values.get('TEMU_AFFILIATE_ID') }}" class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-500">
+                </div>
+                <div>
+                    <label class="block text-xs text-gray-400 mb-1">SEVENTEEN_TRACK_API_KEY — מעקב משלוחים</label>
+                    <input type="password" name="SEVENTEEN_TRACK_API_KEY" value="" placeholder="{{ values.get('SEVENTEEN_TRACK_API_KEY') or 'לא הוגדר...' }}" class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-500" autocomplete="off">
+                    <label class="flex items-center gap-2 mt-1 text-xs text-gray-400"><input type="checkbox" name="SEVENTEEN_TRACK_API_KEY__clear" class="accent-indigo-500"> מחק</label>
+                </div>
+
+                <div class="md:col-span-2">
+                    <div class="flex justify-between items-center mb-2">
+                        <p class="font-bold text-sm text-indigo-300">✈️ התראות טלגרם</p>
+                        <button type="button" onclick="testConnection('telegram', this)" class="btn-primary px-3 py-1.5 rounded-lg text-xs font-bold">🔌 בדוק חיבור</button>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-xs text-gray-400 mb-1">TELEGRAM_BOT_TOKEN</label>
+                            <input type="password" name="TELEGRAM_BOT_TOKEN" value="" placeholder="{{ values.get('TELEGRAM_BOT_TOKEN') or 'לא הוגדר...' }}" class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-500" autocomplete="off">
+                            <label class="flex items-center gap-2 mt-1 text-xs text-gray-400"><input type="checkbox" name="TELEGRAM_BOT_TOKEN__clear" class="accent-indigo-500"> מחק</label>
+                        </div>
+                        <div>
+                            <label class="block text-xs text-gray-400 mb-1">TELEGRAM_CHAT_ID</label>
+                            <input type="text" name="TELEGRAM_CHAT_ID" value="{{ values.get('TELEGRAM_CHAT_ID') }}" class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-500">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ============ Google OAuth (Sign in with Google) ============ -->
+        <div class="glass-card p-6">
+            <div class="flex justify-between items-center flex-wrap gap-2 mb-4">
+                <h2 class="font-bold text-lg">🔑 התחברות עם Google (OAuth)</h2>
+                <p class="text-xs text-gray-400">בלי המפתחות, כפתור "המשך עם Google" בעמודי ההרשמה/התחברות מציג הודעה "עדיין לא הופעל".</p>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-xs text-gray-400 mb-1">GOOGLE_OAUTH_CLIENT_ID</label>
+                    <input type="password" name="GOOGLE_OAUTH_CLIENT_ID" value="" placeholder="{{ values.get('GOOGLE_OAUTH_CLIENT_ID') or 'לא הוגדר — מ-Google Cloud Console...' }}" class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-500" autocomplete="off">
+                    <label class="flex items-center gap-2 mt-1 text-xs text-gray-400"><input type="checkbox" name="GOOGLE_OAUTH_CLIENT_ID__clear" class="accent-indigo-500"> מחק</label>
+                </div>
+                <div>
+                    <label class="block text-xs text-gray-400 mb-1">GOOGLE_OAUTH_CLIENT_SECRET</label>
+                    <input type="password" name="GOOGLE_OAUTH_CLIENT_SECRET" value="" placeholder="{{ values.get('GOOGLE_OAUTH_CLIENT_SECRET') or 'לא הוגדר...' }}" class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-500" autocomplete="off">
+                    <label class="flex items-center gap-2 mt-1 text-xs text-gray-400"><input type="checkbox" name="GOOGLE_OAUTH_CLIENT_SECRET__clear" class="accent-indigo-500"> מחק</label>
+                </div>
+            </div>
+        </div>
+
+        <!-- ============ WhatsApp Business API ============ -->
+        <div class="glass-card p-6">
+            <div class="flex justify-between items-center flex-wrap gap-2 mb-4">
+                <h2 class="font-bold text-lg">💬 WhatsApp — התראות ועדכונים</h2>
+                <button type="button" onclick="testConnection('whatsapp', this)" class="btn-primary px-4 py-2 rounded-lg text-xs font-bold">🔌 בדוק חיבור</button>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-xs text-gray-400 mb-1">WHATSAPP_PHONE_NUMBER_ID</label>
+                    <input type="text" name="WHATSAPP_PHONE_NUMBER_ID" value="{{ values.get('WHATSAPP_PHONE_NUMBER_ID') }}" class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-500">
+                </div>
+                <div>
+                    <label class="block text-xs text-gray-400 mb-1">WHATSAPP_ACCESS_TOKEN</label>
+                    <input type="password" name="WHATSAPP_ACCESS_TOKEN" value="" placeholder="{{ values.get('WHATSAPP_ACCESS_TOKEN') or 'לא הוגדר...' }}" class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-500" autocomplete="off">
+                    <label class="flex items-center gap-2 mt-1 text-xs text-gray-400"><input type="checkbox" name="WHATSAPP_ACCESS_TOKEN__clear" class="accent-indigo-500"> מחק</label>
+                </div>
+                <div class="md:col-span-2">
+                    <label class="block text-xs text-gray-400 mb-1">WHATSAPP_VERIFY_TOKEN — אימות Webhook</label>
+                    <input type="password" name="WHATSAPP_VERIFY_TOKEN" value="" placeholder="{{ values.get('WHATSAPP_VERIFY_TOKEN') or 'לא הוגדר...' }}" class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-500" autocomplete="off">
+                    <label class="flex items-center gap-2 mt-1 text-xs text-gray-400"><input type="checkbox" name="WHATSAPP_VERIFY_TOKEN__clear" class="accent-indigo-500"> מחק</label>
+                </div>
+            </div>
+            <p class="text-[11px] text-gray-500 mt-2">WhatsApp Business API — developers.facebook.com → אפליקציה → WhatsApp → Setup. ה-Phone Number ID מתקבל מלוח הבקרה של WhatsApp.</p>
+        </div>
+
+        <!-- ============ Web Push (VAPID) ============ -->
+        <div class="glass-card p-6">
+            <h2 class="font-bold text-lg mb-4">🔔 Web Push — התראות דפדפן (VAPID)</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="md:col-span-2">
+                    <label class="block text-xs text-gray-400 mb-1">VAPID_PRIVATE_KEY — מפתח פרטי</label>
+                    <input type="password" name="VAPID_PRIVATE_KEY" value="" placeholder="{{ values.get('VAPID_PRIVATE_KEY') or 'לא הוגדר...' }}" class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-500" autocomplete="off">
+                    <label class="flex items-center gap-2 mt-1 text-xs text-gray-400"><input type="checkbox" name="VAPID_PRIVATE_KEY__clear" class="accent-indigo-500"> מחק</label>
+                </div>
+                <div>
+                    <label class="block text-xs text-gray-400 mb-1">VAPID_PUBLIC_KEY — מפתח ציבורי</label>
+                    <input type="text" name="VAPID_PUBLIC_KEY" value="{{ values.get('VAPID_PUBLIC_KEY') }}" class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-500">
+                </div>
+                <div>
+                    <label class="block text-xs text-gray-400 mb-1">VAPID_CLAIMS_EMAIL</label>
+                    <input type="text" name="VAPID_CLAIMS_EMAIL" value="{{ values.get('VAPID_CLAIMS_EMAIL') }}" placeholder="mailto:admin@yourdomain.com" class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-500">
+                </div>
+            </div>
+            <p class="text-[11px] text-gray-500 mt-2">הפקת מפתחות: <code class="text-indigo-300">pip install pywebpush && pywebpush gen-keypair</code>. ה-public key נדרש במניפסט ובצד הלקוח; ה-private key בשרת.</p>
+        </div>
+
+        <!-- ============ General / Security ============ -->
+        <div class="glass-card p-6">
+            <h2 class="font-bold text-lg mb-4">🌐 כללי ואבטחה</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-xs text-gray-400 mb-1">SITE_URL — הכתובת הרשמית של האתר (נדרשת לאימיילים ואינסטגרם)</label>
+                    <input type="text" name="SITE_URL" value="{{ values.get('SITE_URL') }}"
+                           class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-500">
+                </div>
+                <div>
+                    <label class="block text-xs text-gray-400 mb-1">ADMIN_EMAIL — מייל הכניסה לניהול</label>
+                    <input type="email" name="ADMIN_EMAIL" value="{{ values.get('ADMIN_EMAIL') }}" placeholder="admin@smartshop.ai"
+                           class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-500">
+                </div>
+                <div class="md:col-span-2">
+                    <label class="block text-xs text-gray-400 mb-1">👥 TEAM_EMAILS — מיילים של אנשי הצוות (מופרדים בפסיק)</label>
+                    <input type="text" name="TEAM_EMAILS" value="{{ values.get('TEAM_EMAILS') }}" placeholder="support@smartshop.ai, ofer@smartshop.ai"
+                           class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-500" dir="ltr">
+                    <p class="text-[11px] text-gray-500 mt-1">פניות ממרכז העזרה (טופס "כתבו לנו") נשמרות באתר ונשלחות במייל לכל הכתובות פה — וגם ל-ADMIN_EMAIL. אפשר לצפות בהן בלוח הבקרה → פניות.</p>
+                </div>
+                <div>
+                    <label class="block text-xs text-gray-400 mb-1">ADMIN_SECRET_KEY — סיסמת הכניסה לניהול</label>
+                    <input type="password" name="ADMIN_SECRET_KEY" value="" placeholder="{{ values.get('ADMIN_SECRET_KEY') or 'לא הוגדר...' }}"
+                           class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-500" autocomplete="off">
+                    <label class="flex items-center gap-2 mt-1 text-xs text-gray-400"><input type="checkbox" name="ADMIN_SECRET_KEY__clear" class="accent-indigo-500"> מחק את הסיסמה הקיימת</label>
+                </div>
+                <div class="md:col-span-2">
+                    <label class="block text-xs text-gray-400 mb-1">SESSION_SECRET_KEY — מפתח חתימת הסשנים</label>
+                    <input type="password" name="SESSION_SECRET_KEY" value="" placeholder="{{ values.get('SESSION_SECRET_KEY') or 'לא הוגדר...' }}"
+                           class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-500" autocomplete="off">
+                    <label class="flex items-center gap-2 mt-1 text-xs text-gray-400"><input type="checkbox" name="SESSION_SECRET_KEY__clear" class="accent-indigo-500"> מחק את המפתח הקיים</label>
+                </div>
+            </div>
+        </div>
+
+        <div class="flex items-center gap-3 flex-wrap">
+            <button type="submit" class="btn-primary px-8 py-3 rounded-xl font-bold text-sm">💾 שמירת כל ההגדרות</button>
+            <p class="text-xs text-gray-400">הערה: שינוי של ADMIN_SECRET_KEY מתבטא בכניסה הבאה ללוח הניהול.</p>
+        </div>
+        <p class="text-xs text-gray-400 mt-4 leading-relaxed">
+            💡 שדה ריק = שומרים את הערך הקיים (לניקוי סודות יש תיבת "מחק").
+            כפתור "בדוק חיבור" בודק את הערכים שהוקלדו בטופס (ואם ריק — את הערכים השמורים).
+            באחסון מאונדכס (למשל Render) שמירה משנה את ההגדרות לסשן הנוכחי — יש לשכפל אותן גם בדשבורד של ספק האחסון כדי שיישמרו בין redeploy.
+        </p>
+    </form>
+</div>
+
+<script>
+const statusEl = document.getElementById('save-status');
+
+document.getElementById('settings-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    statusEl.textContent = 'שומר...';
+    statusEl.className = 'text-sm text-gray-400';
+    try {
+        const res = await fetch('/admin/settings/save', { method: 'POST', body: new FormData(e.target) });
+        const data = await res.json();
+        statusEl.textContent = data.message || 'נשמר';
+        statusEl.className = 'text-sm ' + (data.status === 'ok' ? 'text-green-400 font-bold' : 'text-red-400 font-bold');
+        if (data.status === 'ok' && Array.isArray(data.changed) && data.changed.length) {
+            statusEl.textContent += ' (' + data.changed.join(', ') + ')';
+        }
+    } catch (err) {
+        statusEl.textContent = 'שגיאה בשמירה';
+        statusEl.className = 'text-sm text-red-400 font-bold';
+    }
+});
+
+async function testConnection(service, btn) {
+    const original = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = 'בודק...';
+    // Show the result inline right next to this button (not just at the top
+    // of the page) so it's obvious which key passed/failed.
+    let badge = btn.parentElement.querySelector('.conn-test-badge');
+    if (!badge) {
+        badge = document.createElement('span');
+        badge.className = 'conn-test-badge text-xs font-bold ml-2';
+        btn.parentElement.appendChild(badge);
+    }
+    badge.textContent = '⏳ בודק...';
+    badge.className = 'conn-test-badge text-xs font-bold ml-2 text-gray-300';
+    try {
+        // Send the values currently typed in this card, so the test reflects
+        // what the user sees (empty fields fall back to saved settings).
+        const card = btn.closest('.glass-card');
+        const fd = new FormData();
+        fd.append('csrf_token', document.querySelector('#settings-form input[name=csrf_token]').value);
+        if (card) {
+            card.querySelectorAll('input[name]').forEach(inp => {
+                if (inp.type === 'checkbox') { if (inp.checked) fd.append(inp.name, 'on'); }
+                else fd.append(inp.name, inp.value);
+            });
+        }
+        const res = await fetch(`/admin/settings/test/${service}`, { method: 'POST', body: fd });
+        const data = await res.json();
+        const ok = data.status === 'ok';
+        badge.textContent = (ok ? '✅ ' : '❌ ') + (data.message || 'תוצאה לא ידועה');
+        badge.className = 'conn-test-badge text-xs font-bold ml-2 ' + (ok ? 'text-green-400' : 'text-red-400');
+        statusEl.textContent = '';
+    } catch (err) {
+        badge.textContent = '❌ שגיאה בבדיקה — השרת לא הגיב';
+        badge.className = 'conn-test-badge text-xs font-bold ml-2 text-red-400';
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = original;
+    }
+}
+</script>
+{% endblock %}

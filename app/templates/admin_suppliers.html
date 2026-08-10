@@ -1,0 +1,260 @@
+{% extends "layout.html" %}
+{% block title %}סטטוס ספקים | סמארטשופ{% endblock %}
+{% block content %}
+<div class="container mx-auto px-4 py-10 max-w-5xl space-y-6">
+    <div class="flex justify-between items-center flex-wrap gap-3">
+        <div>
+            <h1 class="text-3xl font-bold">🛰️ סטטוס ספקים — חי</h1>
+            <p class="text-sm text-gray-400 mt-1">מה מחובר, כמה מוצרים נמשכו מכל ספק ומתי — מתעדכן אוטומטית כל 30 שניות.</p>
+        </div>
+        <div class="flex gap-2">
+            <a href="/admin/settings" class="glass-card px-4 py-2 rounded-lg text-sm font-bold hover:border-indigo-400/40 transition">⚙️ הזנת מפתחות</a>
+            <a href="/admin" class="glass-card px-4 py-2 rounded-lg text-sm font-bold hover:border-indigo-400/40 transition">← ללוח הבקרה</a>
+        </div>
+    </div>
+
+    <div class="flex items-center justify-between flex-wrap gap-2">
+        <p id="last-refresh" class="text-xs text-gray-500"></p>
+        <div class="flex gap-2">
+            <button onclick="runDiscovery()" id="discovery-btn" class="btn-primary px-5 py-2 rounded-xl font-bold text-sm">🚀 הפעל איסוף מוצרים עכשיו</button>
+            <button onclick="refreshAll()" class="glass-card px-4 py-2 rounded-lg text-sm font-bold hover:border-indigo-400/40 transition">🔄 רענון ידני</button>
+            <button onclick="clearImageCache()" id="cache-clear-btn" class="glass-card px-4 py-2 rounded-lg text-sm font-bold hover:border-red-400/40 transition text-red-400">🗑️ נקה מטמון תמונות</button>
+            <button onclick="warmImageCache()" id="cache-warm-btn" class="glass-card px-4 py-2 rounded-lg text-sm font-bold hover:border-cyan-400/40 transition text-cyan-400">🔥 חמם מטמון תמונות</button>
+        </div>
+    </div>
+    <p id="discovery-status" class="text-sm text-gray-400"></p>
+
+    <!-- ============ LIVE SUPPLIER CARDS ============ -->
+    <div id="supplier-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {% for s in statuses %}
+        <div class="glass-card p-5 flex flex-col gap-3" id="card-{{ s.name }}" data-name="{{ s.name }}">
+            <div class="flex items-center justify-between gap-2">
+                <div class="flex items-center gap-3 min-w-0">
+                    <span class="text-2xl">{{ s.icon }}</span>
+                    <div class="min-w-0">
+                        <p class="font-bold text-sm truncate">{{ s.label }}</p>
+                        <p class="text-[10px] text-gray-500 font-mono" dir="ltr">{{ s.name }}</p>
+                    </div>
+                </div>
+                <span class="shrink-0 px-2.5 py-1 rounded-full text-[11px] font-bold {{ 'bg-green-500/20 text-green-300' if s.mode == 'api' else 'bg-yellow-500/15 text-yellow-200' }}">
+                    {{ s.mode_label }}
+                </span>
+            </div>
+            <div class="grid grid-cols-3 gap-2 text-center">
+                <div class="bg-white/5 rounded-xl py-2">
+                    <p class="text-lg font-black text-indigo-300">{{ s.product_count }}</p>
+                    <p class="text-[10px] text-gray-400">מוצרים</p>
+                </div>
+                <div class="bg-white/5 rounded-xl py-2">
+                    <p class="text-lg font-black text-cyan-300">{{ s.pending_count }}</p>
+                    <p class="text-[10px] text-gray-400">בהמתנה</p>
+                </div>
+                <div class="bg-white/5 rounded-xl py-2">
+                    <p class="text-[11px] font-bold text-gray-200 leading-tight mt-1">{{ s.last_pull_ago }}</p>
+                    <p class="text-[10px] text-gray-400">משיכה אחרונה</p>
+                </div>
+            </div>
+            <div class="flex flex-wrap gap-2 mt-auto">
+                <button onclick="pullNow({{ s.name|tojson }}, this)" class="glass-card flex-1 py-2 rounded-lg text-xs font-bold hover:border-indigo-400/40 transition">⬇️ משוך מוצרים עכשיו</button>
+                <button onclick="pullTest({{ s.name|tojson }}, this)" class="btn-primary flex-1 py-2 rounded-lg text-xs font-bold">🔌 בדיקת משיכה מלאה</button>
+                <a href="/admin/settings" class="glass-card px-3 py-2 rounded-lg text-xs font-bold hover:border-indigo-400/40 transition text-center">⚙️</a>
+            </div>
+            <p id="pull-{{ s.name }}" class="text-[11px] text-gray-400 leading-relaxed hidden"></p>
+            <p id="result-{{ s.name }}" class="text-[11px] text-gray-400 leading-relaxed hidden"></p>
+        </div>
+        {% endfor %}
+    </div>
+
+    <div class="glass-card p-5 text-xs" id="img-cache-stats">
+        <p class="font-bold text-sm text-cyan-300 mb-2"><i class="fa-solid fa-images"></i> מטמון תמונות (WebP / AVIF)</p>
+        <div class="grid grid-cols-3 gap-3 text-center">
+            <div class="bg-white/5 rounded-xl py-2">
+                <p class="text-lg font-black text-cyan-300" id="cache-webp">{{ image_cache.webp_files | default(0) }}</p>
+                <p class="text-[10px] text-gray-400">WebP</p>
+            </div>
+            <div class="bg-white/5 rounded-xl py-2">
+                <p class="text-lg font-black text-cyan-300" id="cache-avif">{{ image_cache.avif_files | default(0) }}</p>
+                <p class="text-[10px] text-gray-400">AVIF</p>
+            </div>
+            <div class="bg-white/5 rounded-xl py-2">
+                <p class="text-lg font-black text-cyan-300" id="cache-mb">{{ "%.1f"|format(image_cache.total_mb | default(0)) }}</p>
+                <p class="text-[10px] text-gray-400">MB</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="glass-card p-5 text-xs text-gray-400 leading-relaxed">
+        <p class="font-bold text-sm text-indigo-300 mb-2">💡 מה המשמעות?</p>
+        <p>🟢 <b>API רשמי</b> — הספק מחובר דרך ה-API הרשמי שלו (מפתחות הוזנו ותקינים). קישורי עמלה אוטומטיים ונתונים אמינים.</p>
+        <p>🟡 <b>סקרייפינג</b> — עדיין אין מפתחות API (או לספק אין API ציבורי, כמו Temu / B&H). האתר מושך מוצרים מעמודי החיפוש — עובד, אבל פחות אמין ואיטי יותר.</p>
+        <p class="mt-2">כפתור <b>בדיקת משיכה מלאה</b> מריץ את כל זרימת ההרשמה לספק הזה: בדיקת מפתחות → משיכת מוצר אמיתי אחד → אימות שקישור העמלה תקין. זה יכול לקחת עד כדקה.</p>
+    </div>
+</div>
+
+<script>
+// Same CSRF protection as the dashboard: every admin POST carries the
+// signed token (header + form field) for require_admin_csrf.
+const CSRF_TOKEN = {{ csrf_token|tojson }};
+const _origFetch = window.fetch;
+window.fetch = function(input, init) {
+    init = init || {};
+    const method = (init.method || 'GET').toUpperCase();
+    if (method === 'POST') {
+        const headers = new Headers(init.headers || {});
+        headers.set('X-CSRF-Token', CSRF_TOKEN);
+        init.headers = headers;
+        if (init.body && typeof init.body.append === 'function') {
+            init.body.append('csrf_token', CSRF_TOKEN);
+        }
+    }
+    return _origFetch(input, init);
+};
+
+function setBadge(card, mode, label) {
+    const badge = card.querySelector('span.rounded-full');
+    badge.textContent = label;
+    badge.className = 'shrink-0 px-2.5 py-1 rounded-full text-[11px] font-bold ' +
+        (mode === 'api' ? 'bg-green-500/20 text-green-300' : 'bg-yellow-500/15 text-yellow-200');
+}
+
+async function refreshAll() {
+    try {
+        const res = await fetch('/admin/suppliers/api');
+        const data = await res.json();
+        for (const s of data.statuses) {
+            const card = document.getElementById('card-' + s.name);
+            if (!card) continue;
+            // The stats are the three <p> elements matching this selector,
+            // in DOM order: product_count, pending_count, last_pull_ago.
+            const cells = card.querySelectorAll('p.text-lg.font-black, p.text-[11px].font-bold');
+            if (cells.length >= 1) cells[0].textContent = s.product_count;
+            if (cells.length >= 2) cells[1].textContent = s.pending_count;
+            if (cells.length >= 3) cells[2].textContent = s.last_pull_ago;
+            setBadge(card, s.mode, s.mode_label);
+        }
+        document.getElementById('last-refresh').textContent = 'עודכן לאחרונה: ' + new Date().toLocaleTimeString('he-IL');
+        // Update image cache stats
+        if (data.image_cache) {
+            document.getElementById('cache-webp').textContent = data.image_cache.webp_files || 0;
+            document.getElementById('cache-avif').textContent = data.image_cache.avif_files || 0;
+            document.getElementById('cache-mb').textContent = (data.image_cache.total_mb || 0).toFixed(1);
+        }
+    } catch (e) { /* silent — next tick will retry */ }
+}
+
+async function runDiscovery() {
+    const btn = document.getElementById('discovery-btn');
+    const status = document.getElementById('discovery-status');
+    btn.disabled = true;
+    status.textContent = 'מריץ סריקת ספקים ברקע... זה יכול לקחת כמה דקות.';
+    try {
+        await fetch('/admin/run-discovery', { method: 'POST' });
+        status.textContent = 'האיסוף הופעל ברקע. המונה יתעדכן אוטומטית כאן.';
+        setTimeout(refreshAll, 8000);
+    } catch (e) { status.textContent = 'שגיאה בהפעלת האיסוף.'; }
+    finally { btn.disabled = false; }
+}
+
+async function pullNow(supplier, btn) {
+    const pullEl = document.getElementById('pull-' + supplier);
+    const original = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '⏳ מושך...';
+    pullEl.classList.remove('hidden');
+    pullEl.textContent = 'משיכה ברקע (דקה בערך)...';
+    pullEl.className = 'text-[11px] text-cyan-300 leading-relaxed';
+    try {
+        const res = await fetch(`/admin/suppliers/pull/${supplier}`, { method: 'POST' });
+        const data = await res.json();
+        if (data.status !== 'started') {
+            pullEl.textContent = '❌ ' + (data.message || 'המשיכה לא הופעלה');
+            pullEl.className = 'text-[11px] text-red-400 leading-relaxed';
+        } else {
+            pullEl.textContent = '✅ ' + data.message + ' רענון אוטומטי בעוד כמה שניות...';
+            // Refresh the counters a few seconds later so the new pulls show up.
+            setTimeout(refreshAll, 8000);
+        }
+    } catch (err) {
+        pullEl.textContent = '❌ השרת לא הגיב — נסו שוב בעוד רגע.';
+        pullEl.className = 'text-[11px] text-red-400 leading-relaxed';
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = original;
+    }
+}
+
+async function pullTest(supplier, btn) {
+    const resultEl = document.getElementById('result-' + supplier);
+    const original = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = 'בודק...';
+    resultEl.classList.remove('hidden');
+    resultEl.textContent = '⏳ מריץ בדיקה מלאה (מפתחות → משיכת מוצר → קישור עמלה)...';
+    resultEl.className = 'text-[11px] text-gray-300 leading-relaxed';
+    try {
+        const res = await fetch(`/admin/suppliers/pull-test/${supplier}`, { method: 'POST' });
+        const data = await res.json();
+        const ok = data.status === 'ok';
+        resultEl.textContent = (ok ? '✅ ' : (data.status === 'skip' ? '⏭️ ' : '❌ ')) + (data.message || 'תוצאה לא ידועה');
+        resultEl.className = 'text-[11px] leading-relaxed ' + (ok ? 'text-green-400' : (data.status === 'skip' ? 'text-yellow-200' : 'text-red-400'));
+    } catch (err) {
+        resultEl.textContent = '❌ השרת לא הגיב — נסו שוב בעוד רגע.';
+        resultEl.className = 'text-[11px] text-red-400 leading-relaxed';
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = original;
+    }
+}
+
+async function clearImageCache() {
+    const btn = document.getElementById('cache-clear-btn');
+    const status = document.getElementById('discovery-status');
+    if (!confirm('בטוחים? פעולה זו תמחק את כל תמונות ה-WebP / AVIF שנשמרו במטמון. התמונות יומרו מחדש בביקוש הבא.')) return;
+    const original = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '⏳ מוחק...';
+    try {
+        const res = await fetch('/admin/image-cache/clear', { method: 'POST' });
+        const data = await res.json();
+        status.textContent = data.status === 'ok'
+            ? '✅ ' + data.message
+            : '❌ ' + (data.message || 'שגיאה בניקוי המטמון');
+        status.className = data.status === 'ok' ? 'text-sm text-green-400' : 'text-sm text-red-400';
+    } catch (e) {
+        status.textContent = '❌ השרת לא הגיב — נסו שוב.';
+        status.className = 'text-sm text-red-400';
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = original;
+    }
+}
+
+async function warmImageCache() {
+    const btn = document.getElementById('cache-warm-btn');
+    const status = document.getElementById('discovery-status');
+    if (!confirm('פעולה זו תוריד ותמיר את כל תמונות המוצרים הפעילים ל-WebP ול-AVIF. עשוי לקחת מספר דקות. להמשיך?')) return;
+    const original = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '⏳ מחמם מטמון...';
+    status.textContent = '🔥 מוריד וממיר תמונות... זה יכול לקחת כמה דקות.';
+    status.className = 'text-sm text-cyan-400';
+    try {
+        const res = await fetch('/admin/warm-image-cache', { method: 'POST' });
+        const data = await res.json();
+        status.textContent = data.status === 'ok'
+            ? '✅ ' + data.message
+            : '❌ ' + (data.message || 'שגיאה בחימום המטמון');
+        status.className = data.status === 'ok' ? 'text-sm text-green-400' : 'text-sm text-red-400';
+    } catch (e) {
+        status.textContent = '❌ השרת לא הגיב — נסו שוב.';
+        status.className = 'text-sm text-red-400';
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = original;
+    }
+}
+
+refreshAll();
+setInterval(refreshAll, 30000);
+</script>
+{% endblock %}

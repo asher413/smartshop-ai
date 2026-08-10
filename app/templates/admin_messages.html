@@ -1,0 +1,65 @@
+{% extends "layout.html" %}
+{% block title %}פניות ממרכז העזרה | סמארטשופ{% endblock %}
+{% block content %}
+<div class="container mx-auto px-4 py-10 max-w-4xl space-y-6">
+    <div class="flex justify-between items-center flex-wrap gap-3">
+        <div>
+            <h1 class="text-3xl font-bold">📥 פניות ממרכז העזרה</h1>
+            <p class="text-sm text-gray-400 mt-1">הודעות שנשלחו דרך טופס "כתבו לנו" — נשלחות גם במייל לצוות (TEAM_EMAILS). סמנו כטופל כשעניתם.</p>
+        </div>
+        <div class="flex gap-2">
+            <a href="/admin" class="glass-card px-4 py-2 rounded-lg text-sm font-bold hover:border-indigo-400/40 transition">← ללוח הבקרה</a>
+        </div>
+    </div>
+
+    {% if not messages %}
+    <div class="glass-card p-10 text-center">
+        <div class="text-5xl mb-3">📭</div>
+        <p class="font-bold text-lg">אין פניות עדיין</p>
+        <p class="text-sm text-gray-400 mt-1">כשמבקרים ישלחו פנייה ממרכז העזרה, היא תופיע כאן וגם תגיע במייל ל-TEAM_EMAILS.</p>
+    </div>
+    {% endif %}
+
+    <div class="space-y-4">
+        {% for m in messages %}
+        <div class="glass-card p-5 border-l-4 {{ 'border-red-400' if m.status == 'new' else 'border-green-500/40' }}" id="msg-{{ m.id }}">
+            <div class="flex justify-between items-start flex-wrap gap-2 mb-2">
+                <div class="flex items-center gap-2 flex-wrap">
+                    <span class="px-2 py-0.5 rounded-full text-[11px] font-bold {{ 'bg-red-500/20 text-red-300' if m.status == 'new' else 'bg-green-500/20 text-green-300' }}">
+                        {{ {'new':'חדשה','read':'נקראה','replied':'נענתה','closed':'סגורה'}.get(m.status, m.status) }}
+                    </span>
+                    <p class="font-bold text-sm">{{ m.name or 'אנונימי' }} <span class="text-gray-400 font-normal">· {{ m.email }}</span></p>
+                    <p class="text-[11px] text-gray-500">· {{ m.created_at.strftime('%d/%m/%Y %H:%M') if m.created_at else '' }}</p>
+                </div>
+                <div class="flex gap-2">
+                    {% if m.status != 'closed' %}
+                    <a href="mailto:{{ m.email }}?subject={{ m.subject|urlencode }}" class="text-xs text-indigo-300 underline">↩️ כתיבה במייל</a>
+                    {% endif %}
+                    <select onchange="setMsgStatus({{ m.id }}, this.value)" class="bg-white/5 border border-white/10 rounded-lg px-2 py-1 text-xs outline-none">
+                        <option value="new" {{ 'selected' if m.status == 'new' }}>חדשה</option>
+                        <option value="read" {{ 'selected' if m.status == 'read' }}>נקראה</option>
+                        <option value="replied" {{ 'selected' if m.status == 'replied' }}>נענתה</option>
+                        <option value="closed" {{ 'selected' if m.status == 'closed' }}>סגורה</option>
+                    </select>
+                </div>
+            </div>
+            {% if m.subject %}<p class="font-bold text-sm text-indigo-300 mb-1">{{ m.subject }}</p>{% endif %}
+            <p class="text-sm text-gray-300 whitespace-pre-wrap leading-relaxed">{{ m.message }}</p>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<script>
+const CSRF_TOKEN = {{ csrf_token|tojson }};
+async function setMsgStatus(id, status) {
+    const fd = new FormData();
+    fd.append('status', status);
+    fd.append('csrf_token', CSRF_TOKEN);
+    const res = await fetch(`/admin/messages/${id}/status`, { method: 'POST', headers: { 'X-CSRF-Token': CSRF_TOKEN }, body: fd });
+    const data = await res.json();
+    if (data.status === 'ok') location.reload();
+    else alert('שגיאה בעדכון הסטטוס');
+}
+</script>
+{% endblock %}

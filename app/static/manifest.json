@@ -1,0 +1,16 @@
+{
+  "name": "סמארטשופ — בורסת הדילים החכמה",
+  "short_name": "סמארטשופ",
+  "description": "השוואת מחירים חכמה בין AliExpress, Amazon, eBay, Temu ועוד — דילים חמים במקום אחד",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f8fafc",
+  "theme_color": "#1e293b",
+  "orientation": "any",
+  "lang": "he",
+  "dir": "rtl",
+  "icons": [
+    { "src": "/static/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/static/icon-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}

@@ -1,0 +1,31 @@
+{% extends "layout.html" %}
+{% block title %}כניסת מנהל | סמארטשופ{% endblock %}
+{% block content %}
+<div class="container mx-auto px-4 py-20 max-w-md">
+    <div class="glass-card p-8">
+        <div class="text-center mb-6">
+            <div class="text-4xl mb-2">🔐</div>
+            <h1 class="text-2xl font-black">פאנל ניהול</h1>
+            <p class="text-sm text-gray-400 mt-1">הכניסה מיועדת למנהל האתר בלבד</p>
+        </div>
+        {% if error %}<p class="bg-red-500/10 text-red-400 text-sm p-3 rounded-lg mb-4">{{ error }}</p>{% endif %}
+        <form method="post" action="/admin/login" class="space-y-4">
+            <div>
+                <label class="block text-xs text-gray-400 mb-1">מייל מערכת</label>
+                <input type="email" name="email" value="{{ admin_email or '' }}" autocomplete="username" class="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 outline-none focus:ring-2 focus:ring-indigo-500" placeholder="{{ admin_email or 'המייל שלך' }}">
+                {% if admin_email %}
+                <p class="text-[11px] text-green-400 mt-1">✓ המייל המוגדר במערכת: <b>{{ admin_email }}</b> (כבר מולא בשבילך)</p>
+                {% else %}
+                <p class="text-[11px] text-gray-400 mt-1">לא הוגדר ADMIN_EMAIL — אפשר להכניס כל מייל.</p>
+                {% endif %}
+            </div>
+            <div>
+                <label class="block text-xs text-gray-400 mb-1">סיסמה</label>
+                <input type="password" name="password" required autofocus autocomplete="current-password" class="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 outline-none focus:ring-2 focus:ring-indigo-500">
+            </div>
+            <button type="submit" class="btn-primary w-full py-3 rounded-xl font-bold">כניסה לפאנל</button>
+        </form>
+        <p class="text-xs text-gray-300 text-center mt-6">💡 הסיסמה מוגדרת ב-ADMIN_SECRET_KEY שבקובץ ההגדרות (ברירת מחדל: <b>12345</b>). אפשר גם להשתמש בשם המשתמש <b>admin</b> במקום המייל. מומלץ להחליף את הסיסמה מדף ההגדרות בניהול.</p>
+    </div>
+</div>
+{% endblock %}

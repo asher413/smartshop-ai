@@ -1,0 +1,82 @@
+# =============================================================================
+# SmartShop AI — Production Dockerfile for Oracle Cloud Always Free (ARM Ampere)
+#
+# Multi-stage build: builder stage installs deps, final stage is minimal.
+# Oracle's free tier gives 4 ARM cores + 24 GB RAM — this image uses all of it.
+# =============================================================================
+
+# -- Builder stage: install Python deps ---------------------------------------
+FROM python:3.11-slim AS builder
+
+WORKDIR /build
+
+# Install build dependencies (needed for psycopg2, cryptography, etc.)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential libpq-dev libssl-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Python dependencies into a temporary directory
+COPY requirements.txt .
+RUN pip install --no-cache-dir --target=/build/deps -r requirements.txt
+
+# -- Final stage: slim production image ---------------------------------------
+FROM python:3.11-slim
+
+# Create non-root user EARLY so all subsequent layers can use it
+RUN groupadd -r smartshop -g 1000 && useradd -r -g smartshop -u 1000 -m smartshop
+
+# Install Chromium + Playwright system dependencies (for scraping adapters)
+# These are the minimal libs Playwright needs on Debian Bookworm (ARM-compatible)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    wget gnupg libnss3 libatk1.0-0t64 libatk-bridge2.0-0t64 \
+    libcups2t64 libdrm2 libxkbcommon0 libxcomposite1 libxdamage1 \
+    libxfixes3 libxrandr2 libgbm1 libasound2t64 fonts-liberation \
+    libpango-1.0-0 libpangocairo-1.0-0 libcairo2 \
+    libx11-6 libx11-xcb1 libxcb1 libxext6 libxi6 libxtst6 \
+    libxrender1 libfreetype6 libfontconfig1 \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Playwright browsers (Chromium only)
+RUN pip install --no-cache-dir playwright==1.47.0 \
+    && playwright install chromium --with-deps \
+    && pip uninstall -y playwright \
+    && rm -rf /root/.cache/ms-playwright /root/.cache/pip
+
+# Copy Python deps from builder stage
+COPY --from=builder /build/deps /usr/local/lib/python3.11/site-packages/
+
+# Set workdir
+WORKDIR /srv
+RUN chown smartshop:smartshop /srv
+
+# Copy application code (excluding what's in .dockerignore)
+COPY --chown=smartshop:smartshop . .
+
+# Create writable directories for runtime data
+RUN mkdir -p /srv/chroma_db /srv/data && chown -R smartshop:smartshop /srv/chroma_db /srv/data
+
+# Drop privileges
+USER smartshop
+
+EXPOSE 8000
+
+# Health check: /healthz returns 200 if the app and DB are alive
+HEALTHCHECK --interval=30s --timeout=10s --start-period=15s --retries=3 \
+    CMD python -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/healthz')" || exit 1
+
+# Gunicorn + Uvicorn workers:
+# Oracle free tier = 4 ARM cores → 4 workers is a solid default.
+# Each worker handles ~100 concurrent requests comfortably.
+# Override WEB_CONCURRENCY per your actual load; set to 1 for SQLite.
+CMD ["sh", "-c", "\
+    WORKERS=${WEB_CONCURRENCY:-4}; \
+    echo 'Starting SmartShop with $WORKERS workers...'; \
+    exec gunicorn app.api.main:app \
+        -k uvicorn.workers.UvicornWorker \
+        -w $WORKERS \
+        -b 0.0.0.0:8000 \
+        --timeout 60 \
+        --graceful-timeout 30 \
+        --keep-alive 5 \
+        --access-logfile - \
+        --error-logfile -"]

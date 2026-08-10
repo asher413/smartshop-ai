@@ -1,0 +1,304 @@
+{% extends "layout.html" %}
+{% block title %}דוחות | סמארטשופ{% endblock %}
+{% block content %}
+<div class="container mx-auto px-4 py-8 space-y-8">
+    <div class="flex items-center justify-between flex-wrap gap-3">
+        <h1 class="text-2xl font-black">📊 דוחות וניתוחים</h1>
+        <a href="/admin" class="glass-card px-4 py-2 rounded-xl text-sm font-bold hover:border-indigo-400/40 transition">← לוח בקרה</a>
+    </div>
+
+    <!-- KPI cards -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div class="glass-card p-4 text-center">
+            <p class="text-xs text-gray-400">סה"כ מוצרים</p>
+            <p class="text-2xl font-black text-indigo-300">{{ product_count }}</p>
+        </div>
+        <div class="glass-card p-4 text-center">
+            <p class="text-xs text-gray-400">משתמשים רשומים</p>
+            <p class="text-2xl font-black text-green-400">{{ user_count }}</p>
+        </div>
+        <div class="glass-card p-4 text-center">
+            <p class="text-xs text-gray-400">סה"כ קליקים</p>
+            <p class="text-2xl font-black text-cyan-300">{{ total_clicks }}</p>
+        </div>
+        <div class="glass-card p-4 text-center">
+            <p class="text-xs text-gray-400">הזמנות</p>
+            <p class="text-2xl font-black text-orange-400">{{ order_count }}</p>
+        </div>
+    </div>
+
+    <!-- Revenue cards -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div class="glass-card p-5">
+            <p class="text-xs text-gray-400 mb-1">הכנסות כוללות</p>
+            <p class="text-3xl font-black text-gold">₪{{ "%.0f"|format(total_revenue or 0) }}</p>
+        </div>
+        <div class="glass-card p-5">
+            <p class="text-xs text-gray-400 mb-1">ממוצע להזמנה</p>
+            <p class="text-3xl font-black text-green-400">₪{{ "%.0f"|format(avg_order or 0) }}</p>
+        </div>
+        <div class="glass-card p-5">
+            <p class="text-xs text-gray-400 mb-1">ספקים פעילים</p>
+            <p class="text-3xl font-black text-purple-300">{{ supplier_labels|length }}</p>
+        </div>
+    </div>
+
+    <!-- Charts row 1: Revenue + Supplier -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- Monthly revenue -->
+        <div class="glass-card p-5">
+            <h3 class="font-bold mb-4">💰 הכנסות לפי חודש (12 חודשים אחרונים)</h3>
+            <div class="relative" style="height: 320px;">
+                <canvas id="revenueChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Supplier distribution (moved here from above, keeps layout balanced) -->
+        <div class="glass-card p-5">
+            <h3 class="font-bold mb-4">📦 התפלגות מוצרים לפי ספק</h3>
+            <div class="relative" style="height: 320px;">
+                <canvas id="supplierChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Daily clicks (full width, below) -->
+    <div class="glass-card p-5">
+        <h3 class="font-bold mb-4">🖱️ קליקים לפי יום (30 ימים אחרונים)</h3>
+        <div class="relative" style="height: 300px;">
+            <canvas id="clicksChart"></canvas>
+        </div>
+    </div>
+
+    <!-- Category pie chart -->
+    <div class="glass-card p-5">
+        <h3 class="font-bold mb-4">🥧 התפלגות מוצרים לפי קטגוריה</h3>
+        <div class="flex flex-col lg:flex-row items-center gap-6">
+            <div class="relative" style="width: 300px; height: 300px; flex-shrink: 0;">
+                <canvas id="categoryPieChart"></canvas>
+            </div>
+            <div class="flex-1 grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-1 text-sm" id="category-legend"></div>
+        </div>
+    </div>
+
+    <!-- Top 10 products -->
+    <div class="glass-card overflow-hidden">
+        <div class="p-5 border-b border-white/10 flex items-center justify-between">
+            <h3 class="font-bold">🏆 TOP-10 מוצרים</h3>
+            <a href="/admin/reports/export-top10" class="btn-primary px-4 py-2 rounded-lg text-xs font-bold">📥 הורד CSV</a>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full text-right min-w-[600px]">
+                <thead class="bg-white/5 text-gray-400 text-sm">
+                    <tr>
+                        <th class="p-4">#</th>
+                        <th class="p-4">שם המוצר</th>
+                        <th class="p-4">ספק</th>
+                        <th class="p-4">מחיר</th>
+                        <th class="p-4">דירוג</th>
+                        <th class="p-4">ביקורות</th>
+                        <th class="p-4">קליקים</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-white/5">
+                    {% for p in top_products %}
+                    <tr class="hover:bg-white/5 transition">
+                        <td class="p-4 font-mono text-gray-400">{{ loop.index }}</td>
+                        <td class="p-4">
+                            <div class="flex items-center gap-3">
+                                <img src="{{ p.image_url }}" class="w-10 h-10 rounded-lg object-cover shrink-0" onerror="this.src='https://placehold.co/40x40/f4f6f8/94a3b8'">
+                                <a href="/product/{{ p.id }}" class="font-bold text-sm hover:text-indigo-300 transition truncate max-w-[200px] block">{{ p.name }}</a>
+                            </div>
+                        </td>
+                        <td class="p-4 text-sm">
+                            {% set sid = (p.source_adapter or '')|lower %}
+                            {% if 'aliexpress' in sid %}<i class="fa-brands fa-aliexpress text-orange-500 ml-1"></i> AliExpress
+                            {% elif 'amazon' in sid %}<i class="fa-brands fa-amazon text-yellow-500 ml-1"></i> Amazon
+                            {% elif 'ebay' in sid %}<i class="fa-brands fa-ebay text-red-500 ml-1"></i> eBay
+                            {% elif 'temu' in sid %}<i class="fa-solid fa-shop text-pink-400 ml-1"></i> Temu
+                            {% elif 'awin' in sid %}<i class="fa-solid fa-link text-blue-400 ml-1"></i> Awin
+                            {% elif 'cj' in sid %}<i class="fa-solid fa-network-wired text-green-400 ml-1"></i> CJ
+                            {% elif 'rakuten' in sid %}<i class="fa-solid fa-store text-red-400 ml-1"></i> Rakuten
+                            {% elif 'bhphoto' in sid %}<i class="fa-solid fa-camera text-gray-400 ml-1"></i> B&H
+                            {% else %}{{ p.source_adapter or '—' }}{% endif %}
+                        </td>
+                        <td class="p-4 font-bold text-gold">₪{{ "%.0f"|format(p.price or 0) }}</td>
+                        <td class="p-4">
+                            {% if p.rating and p.rating > 0 %}
+                            <span class="text-gold">★ {{ "%.1f"|format(p.rating) }}</span>
+                            {% else %}—{% endif %}
+                        </td>
+                        <td class="p-4 text-sm">{{ p.review_count or 0 }}</td>
+                        <td class="p-4 text-sm">{{ clicks_per_product.get(p.id, 0) }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<script>
+// Pass data from server to JS
+const supplierLabels = {{ supplier_labels|tojson }};
+const supplierData = {{ supplier_counts|tojson }};
+const clickLabels = {{ click_labels|tojson }};
+const clickData = {{ click_data|tojson }};
+
+// Color palette
+const colors = [
+    '#6366f1', '#22c55e', '#f59e0b', '#ef4444', '#3b82f6',
+    '#a855f7', '#ec4899', '#14b8a6', '#f97316', '#84cc16'
+];
+
+const categoryLabels = {{ category_labels|tojson }};
+const categoryData = {{ category_counts|tojson }};
+
+const revenueLabels = {{ revenue_labels|tojson }};
+const revenueData = {{ revenue_data|tojson }};
+
+// Monthly revenue bar chart
+new Chart(document.getElementById('revenueChart'), {
+    type: 'bar',
+    data: {
+        labels: revenueLabels,
+        datasets: [{
+            label: 'הכנסות (₪)',
+            data: revenueData,
+            backgroundColor: 'rgba(34, 197, 94, 0.35)',
+            borderColor: '#22c55e',
+            borderWidth: 1.5,
+            borderRadius: 6,
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+            x: {
+                ticks: { color: '#94a3b8', maxTicksLimit: 12 },
+                grid: { color: 'rgba(255,255,255,0.05)' }
+            },
+            y: {
+                ticks: { color: '#94a3b8', callback: (v) => '₪' + v.toLocaleString() },
+                grid: { color: 'rgba(255,255,255,0.05)' },
+                beginAtZero: true
+            }
+        }
+    }
+});
+
+// Category pie chart
+new Chart(document.getElementById('categoryPieChart'), {
+    type: 'pie',
+    data: {
+        labels: categoryLabels,
+        datasets: [{
+            data: categoryData,
+            backgroundColor: categoryLabels.map((_, i) => colors[i % colors.length] + 'cc'),
+            borderColor: categoryLabels.map((_, i) => colors[i % colors.length]),
+            borderWidth: 1.5,
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: { display: false },
+            tooltip: {
+                callbacks: {
+                    label: (ctx) => {
+                        const total = ctx.dataset.data.reduce((a,b) => a + b, 0);
+                        const pct = ((ctx.raw / total) * 100).toFixed(1);
+                        return `${ctx.label}: ${ctx.raw} (${pct}%)`;
+                    }
+                }
+            }
+        }
+    }
+});
+
+// Build legend below the pie
+(function() {
+    const legend = document.getElementById('category-legend');
+    if (!legend) return;
+    const total = categoryData.reduce((a,b) => a + b, 0);
+    legend.innerHTML = categoryLabels.map((label, i) => {
+        const pct = ((categoryData[i] / total) * 100).toFixed(1);
+        return `<div class="flex items-center gap-2 py-0.5">
+            <span class="w-3 h-3 rounded-sm shrink-0" style="background:${colors[i % colors.length]}cc"></span>
+            <span class="truncate">${label}</span>
+            <span class="font-bold ml-auto text-xs">${categoryData[i]}</span>
+        </div>`;
+    }).join('');
+})();
+
+// Supplier bar chart
+new Chart(document.getElementById('supplierChart'), {
+    type: 'bar',
+    data: {
+        labels: supplierLabels,
+        datasets: [{
+            label: 'מוצרים',
+            data: supplierData,
+            backgroundColor: supplierLabels.map((_, i) => colors[i % colors.length] + '99'),
+            borderColor: supplierLabels.map((_, i) => colors[i % colors.length]),
+            borderWidth: 1.5,
+            borderRadius: 6,
+        }]
+    },
+    options: {
+        indexAxis: 'y',
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+            x: {
+                ticks: { color: '#94a3b8', stepSize: 1 },
+                grid: { color: 'rgba(255,255,255,0.05)' }
+            },
+            y: {
+                ticks: { color: '#94a3b8' },
+                grid: { display: false }
+            }
+        }
+    }
+});
+
+// Daily clicks line chart
+new Chart(document.getElementById('clicksChart'), {
+    type: 'line',
+    data: {
+        labels: clickLabels,
+        datasets: [{
+            label: 'קליקים',
+            data: clickData,
+            borderColor: '#6366f1',
+            backgroundColor: 'rgba(99,102,241,0.1)',
+            tension: 0.3,
+            fill: true,
+            pointRadius: 3,
+            pointBackgroundColor: '#6366f1',
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+            x: {
+                ticks: { color: '#94a3b8', maxTicksLimit: 10 },
+                grid: { color: 'rgba(255,255,255,0.05)' }
+            },
+            y: {
+                ticks: { color: '#94a3b8', stepSize: 1 },
+                grid: { color: 'rgba(255,255,255,0.05)' },
+                beginAtZero: true
+            }
+        }
+    }
+});
+</script>
+{% endblock %}

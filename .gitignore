@@ -1,0 +1,65 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+.eggs/
+dist/
+build/
+
+# Virtual environments
+.venv/
+venv/
+
+# Database files
+*.db
+*.db-shm
+*.db-wal
+
+# ChromaDB data
+chroma_db/
+
+# Environment
+.env
+.env.local
+
+# Git
+.git/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Testing
+.pytest_cache/
+test-report.xml
+.coverage
+htmlcov/
+
+# Logs
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Freebuff
+.freebuff/
+.qodo/
+
+# Deployment docs (not needed in container)
+DEPLOY.md
+DEPLOY_GUIDE.md
+README.md
+SECURITY_REPORT.md
+SUPPLIERS_GUIDE.md
+
+# Render blueprint
+render.yaml
+
+# Tests (not needed in production image)
+tests/
+scripts/loadtest_runner.py

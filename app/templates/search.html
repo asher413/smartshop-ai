@@ -1,0 +1,368 @@
+{% extends "layout.html" %}
+{% block title %}{% if is_category_page %}{{ category_name }}{% elif query %}תוצאות חיפוש: {{ query }}{% else %}חיפוש מוצרים{% endif %} | סמארטשופ{% endblock %}
+{% block content %}
+<div class="container mx-auto px-4 sm:px-6 lg:px-8 py-6">
+
+    <!-- Breadcrumb -->
+    {% if breadcrumbs %}
+    <nav class="breadcrumb mb-4" aria-label="ניווט">
+        {% for crumb in breadcrumbs %}
+            {% if crumb.url %}<a href="{{ crumb.url }}">{{ crumb.label }}</a>{% else %}<span class="font-bold text-primary">{{ crumb.label }}</span>{% endif %}
+            {% if not loop.last %}<span class="sep">›</span>{% endif %}
+        {% endfor %}
+    </nav>
+    {% endif %}
+
+    <!-- Page header -->
+    <div class="mb-6">
+        <h1 class="text-2xl font-black text-primary">
+            {% if is_category_page %}
+                {% set thumb = category_thumbnails.get(category_name) if category_thumbnails else None %}{% if thumb %}<img src="{{ thumb }}" class="inline-block w-6 h-6 rounded object-cover align-middle" alt="{{ category_name }}">{% else %}<i class="{{ category_icons.get(category_name, 'fa-solid fa-shop') }}"></i>{% endif %} {{ category_name }}
+            {% elif query %}
+                תוצאות חיפוש עבור "{{ query }}"
+            {% else %}
+                כל המוצרים
+            {% endif %}
+        </h1>
+        {% if is_category_page and category_subs.get(category_name) %}
+        <div class="flex flex-wrap gap-2 mt-3">
+            {% for sub in category_subs[category_name] %}
+            <a href="/search?q={{ sub|urlencode }}" class="text-xs px-3 py-1.5 rounded-full border border-gray-200 text-gray-600 hover:border-indigo-300 hover:text-indigo-600 transition">
+                {{ sub }}
+            </a>
+            {% endfor %}
+        </div>
+        {% endif %}
+        {% if smart %}
+        <span class="inline-block mt-2 bg-indigo-50 text-indigo-600 px-3 py-1 rounded-full text-xs font-bold"><i class="fa-solid fa-robot ml-1"></i> חיפוש חכם</span>
+        {% endif %}
+    </div>
+
+    <div class="flex flex-col lg:flex-row gap-6">
+        <!-- Filter sidebar -->
+        <aside id="filter-sidebar" class="lg:w-64 shrink-0 lg:sticky lg:top-32 self-start hidden lg:block">
+            <form method="get" action="{% if is_category_page %}/category/{{ category_name|urlencode }}{% else %}/search{% endif %}" class="filter-panel p-5 space-y-0">
+                <div class="flex items-center gap-2 mb-4">
+                    <i class="fa-solid fa-sliders text-indigo-500"></i>
+                    <h3 class="font-black text-sm">מסננים</h3>
+                    {% if has_filters %}
+                    <a href="{% if is_category_page %}/category/{{ category_name|urlencode }}{% else %}/search{% if query %}?q={{ query|urlencode }}{% endif %}{% endif %}" class="mr-auto text-[11px] text-indigo-500 underline"><i class="fa-solid fa-xmark"></i> נקה</a>
+                    {% endif %}
+                </div>
+
+                {% if not is_category_page %}
+                <div class="filter-section">
+                    <h3 class="filter-label">קטגוריה</h3>
+                    <div class="space-y-1 max-h-64 overflow-y-auto">
+                        <label class="filter-option {% if not active_category %}active{% endif %}">
+                            <input type="radio" name="category" value="" {% if not active_category %}checked{% endif %} onchange="this.form.submit()">
+                            הכל
+                        </label>
+                        {% for c in categories %}
+                        <label class="filter-option {% if active_category == c %}active{% endif %}">
+                            <input type="radio" name="category" value="{{ c }}" {% if active_category == c %}checked{% endif %} onchange="this.form.submit()">
+                            {% set thumb = category_thumbnails.get(c) if category_thumbnails else None %}{% if thumb %}<img src="{{ thumb }}" class="w-5 h-5 rounded object-cover shrink-0" alt="{{ c }}">{% else %}<i class="{{ category_icons.get(c, 'fa-solid fa-folder') }}"></i>{% endif %} {{ c }}
+                        </label>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% else %}
+                <input type="hidden" name="category" value="{{ category_name }}">
+                {% endif %}
+
+                <div class="filter-section">
+                    <h3 class="filter-label">טווח מחיר (₪)</h3>
+                    {% if price_stats %}
+                    <div class="text-[11px] text-gray-500 mb-2 text-center">
+                        ממוצע <b class="text-gray-700">₪{{ "{:,.0f}".format(price_stats.avg) }}</b> · חציון <b class="text-gray-700">₪{{ "{:,.0f}".format(price_stats.median) }}</b>
+                    </div>
+                    {% endif %}
+                    <div class="flex items-center gap-1.5 min-w-0">
+                        <input type="number" name="min_price" class="min-w-0 flex-1 rounded-lg px-2 py-2 text-sm border border-gray-200 outline-none focus:ring-2 focus:ring-indigo-500" placeholder="מ-₪" value="{{ min_price if min_price else '' }}" min="0" style="width:0">
+                        <span class="text-xs text-gray-400 shrink-0">עד</span>
+                        <input type="number" name="max_price" class="min-w-0 flex-1 rounded-lg px-2 py-2 text-sm border border-gray-200 outline-none focus:ring-2 focus:ring-indigo-500" placeholder="עד-₪" value="{{ max_price if max_price else '' }}" min="0" style="width:0">
+                    </div>
+                </div>
+
+                <div class="filter-section">
+                    <h3 class="filter-label">דירוג מינימלי</h3>
+                    <select name="min_rating" class="w-full bg-white border border-gray-200 rounded-lg px-2 py-1.5 text-sm outline-none focus:ring-2 focus:ring-indigo-500" onchange="this.form.submit()">
+                        <option value="" {% if not min_rating %}selected{% endif %}>כל הדירוגים</option>
+                        {% for r in [4, 3, 2, 1] %}
+                        <option value="{{ r }}" {% if min_rating == r %}selected{% endif %}><i class="fa-solid fa-star text-amber-500"></i> {{ r }} ומעלה</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                {% if query and not is_category_page %}
+                <input type="hidden" name="q" value="{{ query }}">
+                {% endif %}
+                <input type="hidden" name="sort" value="{{ active_sort }}">
+
+
+            </form>
+        </aside>
+
+        <!-- Results -->
+        <div class="flex-1 min-w-0">
+            <!-- Toolbar: count + sort -->
+            <div class="flex items-center justify-between gap-3 mb-5 flex-wrap">
+                <p class="text-sm font-bold text-gray-700">{{ total_count }} תוצאות</p>
+                <div class="flex items-center gap-2">
+                    <!-- List / Grid toggle -->
+                    <div class="hidden sm:flex items-center bg-white border border-gray-200 rounded-lg overflow-hidden shadow-sm" id="view-toggle">
+                        <button type="button" id="view-grid" class="px-2.5 py-2 text-sm transition" title="תצוגת גריד" aria-label="תצוגת גריד"><i class="fa-solid fa-grid-2"></i></button>
+                        <button type="button" id="view-list" class="px-2.5 py-2 text-sm transition" title="תצוגת רשימה" aria-label="תצוגת רשימה"><i class="fa-solid fa-list"></i></button>
+                    </div>
+                    <button type="button" id="filter-toggle" aria-label="פתיחת מסננים"
+                            class="lg:hidden text-xs font-bold bg-white border border-gray-200 rounded-lg px-3 py-2 shadow-sm hover:border-indigo-400 transition">
+                        <i class="fa-solid fa-sliders ml-1 text-indigo-500"></i>מסננים{% if has_filters %} •{% endif %}
+                    </button>
+                    <label class="text-xs text-gray-500 hidden sm:block">מיין לפי:</label>
+                    <form method="get" action="{% if is_category_page %}/category/{{ category_name|urlencode }}{% else %}/search{% endif %}" class="m-0">
+                        {% if query and not is_category_page %}<input type="hidden" name="q" value="{{ query }}">{% endif %}
+                        {% if active_category and not is_category_page %}<input type="hidden" name="category" value="{{ active_category }}">{% endif %}
+                        <input type="hidden" name="min_rating" value="{{ min_rating if min_rating else '' }}">
+                        <select name="sort" class="bg-white border border-gray-200 rounded-lg px-3 py-2 text-sm shadow-sm outline-none" onchange="this.form.submit()">
+                            <option value="newest" {% if active_sort == 'newest' %}selected{% endif %}>החדשים ביותר</option>
+                            <option value="price_asc" {% if active_sort == 'price_asc' %}selected{% endif %}>מחיר: נמוך לגבוה</option>
+                            <option value="price_desc" {% if active_sort == 'price_desc' %}selected{% endif %}>מחיר: גבוה לנמוך</option>
+                            <option value="rating" {% if active_sort == 'rating' %}selected{% endif %}>דירוג הגבוה ביותר</option>
+                        </select>
+                    </form>
+                </div>
+            </div>
+
+            {% if live_results %}
+            <div class="mb-8">
+                <div class="flex items-center gap-2 mb-3">
+                    <h2 class="font-bold text-lg"><i class="fa-solid fa-globe"></i> תוצאות חיות מהספקים</h2>
+                    <span class="text-[10px] px-2 py-0.5 rounded-full bg-cyan-100 text-cyan-700 font-bold">LIVE</span>
+                </div>
+                <p class="text-xs text-gray-500 mb-4">לא נמצאו תוצאות בקטלוג שלנו, אז חיפשנו ישירות אצל כל הספקים הרשומים במערכת.</p>
+                <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+                    {% for r in live_results %}
+                    <a href="{{ r.url }}" target="_blank" rel="sponsored noopener" class="glass-card p-4 flex flex-col group">
+                        <div class="relative overflow-hidden rounded-lg mb-3">
+                            {% if r.image_url %}<img src="{{ r.image_url }}" alt="{{ r.name }}" class="w-full h-36 object-cover rounded-lg group-hover:scale-110 transition-transform duration-500" loading="lazy">{% else %}<div class="w-full h-36 bg-gray-50 flex items-center justify-center text-3xl"><i class="fa-solid fa-bag-shopping"></i></div>{% endif %}
+                            <span class="absolute top-2 right-2 bg-cyan-500 text-white text-[10px] font-bold px-2 py-1 rounded-full shadow">{{ r.source }}</span>
+                        </div>
+                        <h3 class="font-bold text-sm truncate mb-2 group-hover:text-indigo-600 transition-colors">{{ r.name }}</h3>
+                        <div class="flex items-baseline gap-2 mt-auto">
+                            <span class="text-xl font-black text-indigo-600">{{ r.currency or '₪' }} {{ "%.0f"|format(r.price or 0) }}</span>
+                            <span class="text-[10px] text-gray-400">באתר הספק</span>
+                        </div>
+                        <span class="btn-primary w-full py-2 rounded-lg text-xs font-bold mt-3 text-center">מעבר לספק <i class="fa-solid fa-arrow-left mr-1"></i></span>
+                    </a>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+
+            {% if not products %}
+            <div class="glass-card p-12 text-center text-gray-500">
+                {% if live_results %}חיפוש חי אצל הספקים נמצא מעל ☝️{% else %}
+                <p class="text-lg font-bold mb-2">לא נמצאו מוצרים תואמים</p>
+                <p class="text-sm">{% if has_filters %}נסו להרחיב את הסינון{% else %}נסו מונח חיפוש אחר{% endif %}, או <a href="/" class="text-indigo-600 underline font-bold">חזרו לכל הדילים</a>.</p>
+                {% endif %}
+            </div>
+            {% else %}
+            <div id="results-grid" class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+                {% for product in products %}
+                <div onclick="window.location.href='/product/{{ product.id }}'" class="product-card cursor-pointer flex flex-col group"
+                     data-supplier="{{ product.source_adapter or '' }}" data-price="{{ product.price or 0 }}"
+                     data-instock="{{ 1 if (product.stock_count is not none and product.stock_count > 0) else 0 }}"
+                     data-discount="{{ 1 if product.discount_percent and product.discount_percent > 0 else 0 }}">
+                    <div class="relative overflow-hidden rounded-lg mb-3">
+                        <img src="{{ product.image_url | imgproxy }}" srcset="{{ product.image_url | imgsrcset }}" sizes="(max-width: 640px) 100vw, (max-width: 1280px) 50vw, 33vw" alt="{{ product.name }}" class="w-full h-36 object-cover rounded-lg group-hover:scale-110 transition-transform duration-500" loading="lazy" onerror="this.src='https://placehold.co/400x300/f8fafc/94a3b8?text=<i class="fa-solid fa-bag-shopping"></i>'">
+                        <button onclick="event.stopPropagation(); toggleCardFavorite({{ product.id }}, this)" class="fav-btn absolute bottom-2 left-2 w-8 h-8 rounded-full bg-white/90 shadow flex items-center justify-center" title="שמור למועדפים" aria-label="שמור למועדפים">
+                            <i class="fa-regular fa-heart text-gray-400"></i>
+                        </button>
+                        {% if product.is_trending %}
+                        <span class="absolute top-2 right-2 bg-red-500 text-white text-[10px] font-bold px-2 py-1 rounded-full shadow"><i class="fa-solid fa-fire"></i> TRENDING</span>
+                        {% endif %}
+                        {% if product.discount_percent and product.discount_percent > 0 %}
+                        <span class="absolute top-2 left-2 discount-badge">-{{ "%.0f"|format(product.discount_percent) }}%</span>
+                        {% endif %}
+                    </div>
+                    <p class="text-[10px] text-indigo-600 font-bold uppercase mb-1">{{ product.category or product.source_adapter or '' }}</p>
+                    <h3 class="font-bold text-sm truncate mb-2 group-hover:text-indigo-600 transition-colors">{{ product.name }}</h3>
+                    {% if smart and search_reasons.get(product.id) %}
+                    <p class="text-[11px] text-indigo-600 bg-indigo-50 rounded-lg p-2 mb-2 leading-snug"><i class="fa-solid fa-robot ml-1"></i> {{ search_reasons.get(product.id) }}</p>
+                    {% endif %}
+                    {% if product.rating and product.rating > 0 %}
+                    <div class="flex items-center gap-1 mb-2">
+                        <span class="text-[11px] text-amber-500 font-bold"><i class="fa-solid fa-star"></i> {{ "%.1f"|format(product.rating) }}</span>
+                        <span class="text-[10px] text-gray-400">({{ product.review_count }})</span>
+                        {% if product.coupon_code %}<span class="text-[10px] text-green-600 font-bold bg-green-50 px-1.5 py-0.5 rounded-full"><i class="fa-solid fa-scissors"></i> {{ product.coupon_code }}</span>{% endif %}
+                    </div>
+                    {% endif %}
+                    <div class="flex items-baseline gap-2 mt-auto flex-wrap">
+                        <span class="text-xl font-black text-indigo-600">{{ "₪%.0f"|format(product.price or 0) }}</span>
+                        {% if product.original_price and product.original_price > product.price %}
+                        <span class="text-xs text-gray-400 line-through">₪{{ "%.0f"|format(product.original_price) }}</span>
+                        {% endif %}
+                    </div>
+                    <button onclick="event.stopPropagation(); window.location.href='/go/{{ product.id }}'" class="btn-primary w-full py-2 rounded-lg text-xs font-bold mt-3">צפה בדיל <i class="fa-solid fa-arrow-left mr-1"></i></button>
+                </div>
+                {% endfor %}
+            </div>
+
+            <div class="flex justify-center gap-3 mt-10">
+                {% if has_prev_page %}
+                <a href="{% if is_category_page %}/category/{{ category_name|urlencode }}?page={{ page - 1 }}&sort={{ active_sort }}{% else %}/search?q={{ query|urlencode }}&page={{ page - 1 }}&category={{ active_category }}&min_price={{ min_price }}&max_price={{ max_price }}&min_rating={{ min_rating }}&sort={{ active_sort }}{% endif %}" class="glass-card px-4 py-2 rounded-lg text-sm font-bold"><i class="fa-solid fa-arrow-right ml-1"></i> הקודם</a>
+                {% endif %}
+                {% if has_next_page %}
+                <a href="{% if is_category_page %}/category/{{ category_name|urlencode }}?page={{ page + 1 }}&sort={{ active_sort }}{% else %}/search?q={{ query|urlencode }}&page={{ page + 1 }}&category={{ active_category }}&min_price={{ min_price }}&max_price={{ max_price }}&min_rating={{ min_rating }}&sort={{ active_sort }}{% endif %}" class="glass-card px-4 py-2 rounded-lg text-sm font-bold">הבא <i class="fa-solid fa-arrow-left mr-1"></i></a>
+                {% endif %}
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    // ── List / Grid view toggle (persisted in localStorage) ──
+    const resultsGrid = document.getElementById('results-grid');
+    const btnGrid = document.getElementById('view-grid');
+    const btnList = document.getElementById('view-list');
+    const VIEW_KEY = 'smartshop_view_mode';
+
+    function setView(mode) {
+        if (!resultsGrid) return;
+        const isList = mode === 'list';
+        resultsGrid.classList.toggle('list-view', isList);
+        if (btnGrid) { btnGrid.style.background = isList ? '' : 'var(--accent-primary)'; btnGrid.style.color = isList ? '' : '#fff'; }
+        if (btnList) { btnList.style.background = isList ? 'var(--accent-primary)' : ''; btnList.style.color = isList ? '#fff' : ''; }
+        try { localStorage.setItem(VIEW_KEY, mode); } catch (e) { /* quota exceeded, ignore */ }
+    }
+
+    const savedView = (function() { try { return localStorage.getItem(VIEW_KEY); } catch (e) { return null; } })();
+    if (savedView === 'list') setView('list');
+
+    if (btnGrid) btnGrid.addEventListener('click', () => setView('grid'));
+    if (btnList) btnList.addEventListener('click', () => setView('list'));
+
+    // ── AJAX live filtering: intercept filter changes, fetch results via AJAX, ──
+    // ── update only the results grid + count + pagination — no full page reload. ──
+    const filterForm = document.querySelector('#filter-sidebar form');
+    const filterSidebar = document.getElementById('filter-sidebar');
+    if (filterForm && resultsGrid) {
+        // Intercept radio/select onchange which calls form.submit()
+        let ajaxFilterTimer = null;
+        const doAjaxFilter = async () => {
+            // Show skeleton loading state
+            resultsGrid.style.opacity = '0.5';
+            resultsGrid.style.pointerEvents = 'none';
+            try {
+                const fd = new FormData(filterForm);
+                const params = new URLSearchParams();
+                for (const [k, v] of fd.entries()) { if (v) params.append(k, v); }
+                const url = filterForm.action + '?' + params.toString();
+                const res = await fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+                const html = await res.text();
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(html, 'text/html');
+                // Replace results grid
+                const newGrid = doc.getElementById('results-grid');
+                if (newGrid) resultsGrid.outerHTML = newGrid.outerHTML;
+                // Re-bind the resultsGrid reference after replacement
+                const freshGrid = document.getElementById('results-grid');
+                if (freshGrid) freshGrid.id = 'results-grid';
+                // Update count text
+                const newCount = doc.querySelector('.text-sm.font-bold.text-gray-700');
+                const oldCount = document.querySelector('.text-sm.font-bold.text-gray-700');
+                if (newCount && oldCount) oldCount.textContent = newCount.textContent;
+                // Update pagination
+                const newPagination = doc.querySelector('.flex.justify-center.gap-3');
+                const oldPagination = document.querySelector('.flex.justify-center.gap-3');
+                if (newPagination && oldPagination) oldPagination.outerHTML = newPagination.outerHTML;
+                // Update empty state
+                const newEmpty = doc.querySelector('.glass-card.p-12');
+                if (newEmpty && !doc.getElementById('results-grid')) {
+                    const mainArea = document.querySelector('.flex-1.min-w-0');
+                    const oldGrid = document.getElementById('results-grid');
+                    if (oldGrid) oldGrid.outerHTML = newEmpty.outerHTML;
+                }
+                // Push state to browser history
+                if (window.history && history.pushState) {
+                    history.pushState(null, '', url);
+                }
+            } catch (e) {
+                // AJAX filter failed — fall back to normal form submit
+                filterForm.submit();
+            }
+            const freshGrid2 = document.getElementById('results-grid');
+            if (freshGrid2) {
+                freshGrid2.style.opacity = '1';
+                freshGrid2.style.pointerEvents = '';
+            }
+            // Re-run client-side quick filters
+            if (typeof applyFilters === 'function') setTimeout(applyFilters, 100);
+        };
+
+        // Override form.submit on radio/select onchange
+        filterForm.querySelectorAll('input[type="radio"][onchange], select[onchange]').forEach(el => {
+            const origChange = el.onchange;
+            el.onchange = function(e) {
+                clearTimeout(ajaxFilterTimer);
+                ajaxFilterTimer = setTimeout(doAjaxFilter, 50);
+                return false;
+            };
+            el.removeAttribute('onchange');
+        });
+    }
+
+    // Mobile filter toggle
+    const filterToggle = document.getElementById('filter-toggle');
+    if (filterToggle && filterSidebar) {
+        filterToggle.addEventListener('click', () => filterSidebar.classList.toggle('hidden'));
+    }
+
+    // Client-side quick filters
+    const cards = Array.from(document.querySelectorAll('.product-card'));
+    const supplierSel = document.getElementById('cf-supplier');
+    const maxPriceEl = document.getElementById('cf-maxprice');
+    const instockEl = document.getElementById('cf-instock');
+    const discountEl = document.getElementById('cf-discount');
+    const resetBtn = document.getElementById('cf-reset');
+    const countEl = document.getElementById('cf-count');
+
+    if (!supplierSel || !cards.length) return;
+
+    const suppliers = new Set();
+    cards.forEach(c => { const s = (c.dataset.supplier || '').trim(); if (s) suppliers.add(s); });
+    [...suppliers].sort().forEach(s => {
+        const opt = document.createElement('option');
+        opt.value = s; opt.textContent = s; supplierSel.appendChild(opt);
+    });
+
+    function applyFilters() {
+        const sup = supplierSel.value;
+        const maxP = parseFloat(maxPriceEl.value || '0');
+        let visible = 0;
+        cards.forEach(c => {
+            let show = true;
+            if (sup && c.dataset.supplier !== sup) show = false;
+            if (show && maxP > 0 && parseFloat(c.dataset.price) > maxP) show = false;
+            if (show && instockEl.checked && c.dataset.instock !== '1') show = false;
+            if (show && discountEl.checked && c.dataset.discount !== '1') show = false;
+            c.style.display = show ? '' : 'none';
+            if (show) visible++;
+        });
+        if (countEl) countEl.textContent = visible + ' / ' + cards.length + ' מוצרים';
+    }
+
+    [maxPriceEl, instockEl, discountEl].forEach(el => el.addEventListener('input', applyFilters));
+    instockEl.addEventListener('change', applyFilters);
+    discountEl.addEventListener('change', applyFilters);
+    resetBtn.addEventListener('click', () => {
+        supplierSel.value = ''; maxPriceEl.value = '';
+        instockEl.checked = false; discountEl.checked = false;
+        applyFilters();
+    });
+    applyFilters();
+});
+</script>
+{% endblock %}

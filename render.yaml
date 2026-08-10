@@ -1,0 +1,90 @@
+# Render Blueprint — one-click free deploy.
+# Deploys the web app as a native Python service (no Docker, no Playwright
+# system deps) so it fits comfortably in Render's free "Hobby" tier.
+# Scraping-based adapters (Temu, and the fallback path for others) simply
+# won't function until you either add Playwright + system deps here later,
+# or run the scheduler separately on a machine with more resources — see
+# README "Free deployment, step by step".
+services:
+  - type: web
+    name: smartshop-ai
+    runtime: python
+    plan: free
+    buildCommand: "pip install -r requirements.txt"
+    startCommand: "uvicorn app.api.main:app --host 0.0.0.0 --port $PORT"
+    healthCheckPath: /healthz
+    envVars:
+      - key: DATABASE_URL
+        sync: false   # paste your Neon/Supabase connection string in the Render dashboard
+      - key: SITE_URL
+        sync: false   # e.g. https://smartshop-ai.onrender.com — also the OAuth redirect base
+      - key: ADMIN_EMAIL
+        sync: false   # the system email that signs into /admin (with ADMIN_SECRET_KEY)
+      - key: GOOGLE_API_KEY
+        sync: false
+      - key: ADMIN_SECRET_KEY
+        generateValue: true
+      - key: SESSION_SECRET_KEY
+        generateValue: true
+      - key: DEFAULT_AFFILIATE_REF
+        value: site
+      - key: REDIS_URL
+        value: ""
+      - key: SMTP_HOST
+        sync: false
+      - key: SMTP_PORT
+        value: "587"
+      - key: SMTP_USER
+        sync: false
+      - key: SMTP_PASSWORD
+        sync: false
+      - key: SMTP_FROM_EMAIL
+        sync: false
+      - key: GOOGLE_OAUTH_CLIENT_ID
+        sync: false
+      - key: GOOGLE_OAUTH_CLIENT_SECRET
+        sync: false
+      - key: INSTAGRAM_ACCESS_TOKEN
+        sync: false
+      - key: INSTAGRAM_ACCOUNT_ID
+        sync: false
+      - key: ALIEXPRESS_APP_KEY
+        sync: false
+      - key: ALIEXPRESS_APP_SECRET
+        sync: false
+      - key: ALIEXPRESS_TRACKING_ID
+        sync: false
+      - key: EBAY_APP_ID
+        sync: false
+      - key: EBAY_CERT_ID
+        sync: false
+      - key: EBAY_CAMPAIGN_ID
+        sync: false
+      - key: AMAZON_PARTNER_TAG
+        sync: false
+      - key: AMAZON_PAAPI_ACCESS_KEY
+        sync: false
+      - key: AMAZON_PAAPI_SECRET_KEY
+        sync: false
+      - key: TEMU_AFFILIATE_ID
+        sync: false
+      - key: AWIN_API_TOKEN
+        sync: false
+      - key: AWIN_PUBLISHER_ID
+        sync: false
+      - key: CJ_API_TOKEN
+        sync: false
+      - key: CJ_COMPANY_ID
+        sync: false
+      - key: RAKUTEN_CLIENT_ID
+        sync: false
+      - key: RAKUTEN_CLIENT_SECRET
+        sync: false
+      - key: RAKUTEN_ACCOUNT_ID
+        sync: false
+      - key: SEVENTEEN_TRACK_API_KEY
+        sync: false
+      - key: TELEGRAM_BOT_TOKEN
+        sync: false
+      - key: TELEGRAM_CHAT_ID
+        sync: false

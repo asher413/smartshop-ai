@@ -1,0 +1,16 @@
+{% extends "layout.html" %}
+{% block title %}אימות אימייל | סמארטשופ{% endblock %}
+{% block content %}
+<div class="container mx-auto px-4 py-24 text-center max-w-md">
+    {% if success %}
+    <p class="text-6xl mb-4">✅</p>
+    <h1 class="text-2xl font-black mb-3">האימייל אומת בהצלחה!</h1>
+    <p class="text-gray-400 mb-8">החשבון שלכם מאומת עכשיו במלואו.</p>
+    {% else %}
+    <p class="text-6xl mb-4">⚠️</p>
+    <h1 class="text-2xl font-black mb-3">קישור לא תקין או שפג תוקפו</h1>
+    <p class="text-gray-400 mb-8">אפשר לבקש קישור אימות חדש מהאזור האישי.</p>
+    {% endif %}
+    <a href="/personal-area" class="btn-primary inline-block px-8 py-3 rounded-xl font-bold">לאזור האישי ⟵</a>
+</div>
+{% endblock %}

@@ -1,0 +1,41 @@
+{% extends "layout.html" %}
+{% block title %}דילים טריים מהספקים | סמארטשופ{% endblock %}
+{% block meta_description %}הדילים האחרונים שנאספו אוטומטית מהספקים — AliExpress, Amazon, eBay, Temu, Awin, CJ ועוד.{% endblock %}
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <h1 class="text-3xl font-black mb-2"><i class="fa-solid fa-satellite-dish ml-2" style="color:var(--accent-primary)"></i> דילים טריים מהספקים</h1>
+    <p class="text-gray-400 mb-8">המוצרים האלה נאספו ואומתו אוטומטית ע&quot;י הצוות שלנו מהאתרים המחוברים למערכת.</p>
+
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-8">
+        {% for source, count, last in by_source %}
+        <div class="glass-card p-4">
+            <p class="font-bold capitalize">{{ source }}</p>
+            <p class="text-2xl font-black text-indigo-300">{{ count }}</p>
+            <p class="text-[10px] text-gray-400">מוצרים פעילים</p>
+        </div>
+        {% endfor %}
+    </div>
+
+    {% if not fresh %}
+    <div class="glass-card p-10 text-center text-gray-400">
+        עדיין אין מוצרים שהגיעו מהספקים. הפעילו את מנוע האיסוף מהאזור הניהולי.
+    </div>
+    {% else %}
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        {% for product in fresh %}
+        <div onclick="window.location.href='/product/{{ product.id }}'" class="product-card p-4 cursor-pointer flex flex-col">
+            <img src="{{ product.image_url }}" alt="{{ product.name }}" class="w-full h-40 object-cover rounded-xl mb-3" loading="lazy">
+            <p class="text-[10px] text-indigo-300 font-bold uppercase mb-1">{{ product.source_adapter or product.supplier_name }}</p>
+            <h3 class="font-bold text-sm truncate mb-2">{{ product.name }}</h3>
+            {% if product.rating and product.rating > 0 %}
+            <p class="text-[11px] text-gold font-bold mb-1">★ {{ "%.1f"|format(product.rating) }}</p>
+            {% endif %}
+            <div class="flex items-baseline gap-2 mt-auto">
+                <span class="text-xl font-black text-gold">₪{{ "%.0f"|format(product.price or 0) }}</span>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

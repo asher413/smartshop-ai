@@ -1,0 +1,154 @@
+{% extends "layout.html" %}
+{% block title %}מרכז עזרה | סמארטשופ{% endblock %}
+{% block meta_description %}מרכז העזרה של סמארטשופ — שאלות נפוצות, יצירת קשר עם הצוות בדוא"ל או בצ'אט, מעקב הזמנות, החזרות והגנת קונה.{% endblock %}
+{% block content %}
+<div class="container mx-auto px-4 py-10 max-w-4xl space-y-8">
+
+    <div class="text-center space-y-2">
+        <h1 class="text-3xl sm:text-4xl font-black"><i class="fa-solid fa-circle-question ml-2" style="color:var(--accent-primary)"></i> מרכז העזרה</h1>
+        <p class="text-gray-500 text-sm sm:text-base">שאלות נפוצות, כתיבה לצוות, וצ'אט — איך שנוח לכם.</p>
+    </div>
+
+    {% if request.query_params.get('sent') == '1' %}
+    <div role="status" class="glass-card p-5 border border-green-500/30 bg-green-500/5 text-center">
+        <p class="font-bold" style="color:var(--accent-success)"><i class="fa-solid fa-circle-check ml-1"></i> הפנייה נשלחה!</p>
+        <p class="text-xs text-gray-500 mt-1">הצוות שלנו קיבל אותה ויחזור אליכם בהקדם האפשרי. בנוסף תוכלו לשאול אותנו ישירות בצ'אט למטה.</p>
+    </div>
+    {% endif %}
+
+    {% if error %}
+    <div role="alert" class="glass-card p-5 border border-red-500/30 bg-red-500/5 text-center">
+        <p class="font-bold text-red-500">{{ error }}</p>
+    </div>
+    {% endif %}
+
+    <!-- ====== FAQ ====== -->
+    <div class="glass-card p-6">
+        <h2 class="font-black text-xl mb-1"><i class="fa-solid fa-circle-question ml-1" style="color:var(--accent-primary)"></i> שאלות נפוצות</h2>
+        <p class="text-xs text-gray-400 mb-4">כל השאלות שמקבלים הכי הרבה — במקום אחד. לא מצאתם תשובה? כתבו לנו למטה.</p>
+        <div class="space-y-2">
+            {% for q, a in faqs %}
+            <details class="group border border-gray-200 rounded-xl overflow-hidden bg-white/60">
+                <summary class="cursor-pointer list-none flex items-center justify-between gap-3 px-4 py-3 font-bold text-sm hover:bg-gray-50 transition">
+                    <span>{{ q }}</span>
+                    <i class="fa-solid fa-chevron-down text-[10px] text-gray-400 group-open:rotate-180 transition-transform shrink-0"></i>
+                </summary>
+                <p class="px-4 pb-4 text-sm text-gray-600 leading-relaxed">{{ a }}</p>
+            </details>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- ====== Chat ====== -->
+    <div class="glass-card p-6">
+        <h2 class="font-black text-xl mb-1"><i class="fa-solid fa-comments ml-1" style="color:var(--accent-primary)"></i> דברו איתנו בצ'אט</h2>
+        <p class="text-xs text-gray-400 mb-4">הקונסיירז' שלנו עונה כאן מיד — שאלות על מוצרים, הזמנות, החזרות או המלצות קנייה. (אפשר גם לפתוח את הצ'אט מצד שמאל למטה בכל עמוד)</p>
+        <div class="bg-white/70 border border-gray-200 rounded-2xl overflow-hidden">
+            <div id="help-chat-history" class="h-64 p-4 overflow-y-auto text-sm flex flex-col gap-2 bg-gray-50"></div>
+            <div class="p-3 border-t border-gray-200 bg-white flex gap-2">
+                <input type="text" id="help-chat-input" placeholder="כתבו כאן... (למשל: איך עוקבים אחרי הזמנה?)"
+                       class="flex-1 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-900 outline-none focus:ring-2 focus:ring-orange-500">
+                <button onclick="helpChatSend()" class="btn-primary px-5 py-2 rounded-lg text-sm font-bold">שליחה</button>
+            </div>
+        </div>
+        <p class="text-[11px] text-gray-400 mt-2"><i class="fa-solid fa-circle-info ml-1"></i> הצ'אט עובד גם בלי המערכת: אם מנוע הבינה לא זמין, עונה מערכת חיפוש חכם בקטלוג.</p>
+    </div>
+
+    <!-- ====== Contact form ====== -->
+    <div class="glass-card p-6" id="contact">
+        <h2 class="font-black text-xl mb-1"><i class="fa-solid fa-envelope ml-1" style="color:var(--accent-primary)"></i> כתבו לנו</h2>
+        <p class="text-xs text-gray-400 mb-4">פנייה אישית לצוות — נענה בדוא"ל. אפשר גם לכתוב ישירות אל {{ contact_email }}</p>
+        <form method="post" action="/help/contact" class="space-y-4">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+            <!-- Honeypot: invisible to humans, bots fill it and get silently dropped -->
+            <input type="text" name="website" value="" tabindex="-1" autocomplete="off" aria-hidden="true"
+                   style="position:absolute;left:-9999px;width:1px;height:1px;opacity:0;">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-xs text-gray-400 mb-1" for="help-name">שם (לא חובה)</label>
+                    <input type="text" id="help-name" name="name" value="{{ values.name if values else '' }}" placeholder="איך קוראים לכם?"
+                           class="w-full bg-white/70 border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-900 outline-none focus:ring-2 focus:ring-orange-500">
+                </div>
+                <div>
+                    <label class="block text-xs text-gray-400 mb-1" for="help-email">אימייל לתשובה *</label>
+                    <input type="email" id="help-email" name="email" required value="{{ values.email if values else '' }}" placeholder="you@example.com"
+                           class="w-full bg-white/70 border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-900 outline-none focus:ring-2 focus:ring-orange-500">
+                </div>
+            </div>
+            <div>
+                <label class="block text-xs text-gray-400 mb-1" for="help-subject">נושא (לא חובה)</label>
+                <input type="text" id="help-subject" name="subject" value="{{ values.subject if values else '' }}" placeholder="למשל: שאלה על הזמנה #1234"
+                       class="w-full bg-white/70 border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-900 outline-none focus:ring-2 focus:ring-orange-500">
+            </div>
+            <div>
+                <label class="block text-xs text-gray-400 mb-1" for="help-message">ההודעה *</label>
+                <textarea id="help-message" name="message" required rows="5" placeholder="ספרו לנו במה אפשר לעזור..."
+                          class="w-full bg-white/70 border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-900 outline-none focus:ring-2 focus:ring-orange-500">{{ values.message if values else '' }}</textarea>
+            </div>
+            <button type="submit" class="btn-primary px-8 py-3 rounded-xl font-bold text-sm"><i class="fa-solid fa-paper-plane ml-1"></i> שליחת הפנייה</button>
+            <p class="text-[11px] text-gray-400">נשתמש באימייל רק כדי לחזור אליכם — לא נעביר אותו לאף אחד. ראו מדיניות פרטיות.</p>
+        </form>
+    </div>
+
+    <!-- ====== Quick links ====== -->
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <a href="/personal-area" class="glass-card p-5 text-center hover:border-orange-400/40 transition">
+            <div class="text-3xl mb-2"><i class="fa-solid fa-box"></i></div>
+            <p class="font-bold text-sm">מעקב הזמנות</p>
+            <p class="text-xs text-gray-400 mt-1">הזמנות ומעקב משלוח באזור האישי</p>
+        </a>
+        <a href="/coupons" class="glass-card p-5 text-center hover:border-orange-400/40 transition">
+            <div class="text-3xl mb-2"><i class="fa-solid fa-ticket"></i></div>
+            <p class="font-bold text-sm">קופונים</p>
+            <p class="text-xs text-gray-400 mt-1">כל הקופונים הפעילים מהספקים</p>
+        </a>
+        <a href="/privacy" class="glass-card p-5 text-center hover:border-orange-400/40 transition">
+            <div class="text-3xl mb-2"><i class="fa-solid fa-shield-halved"></i></div>
+            <p class="font-bold text-sm">פרטיות ואבטחה</p>
+            <p class="text-xs text-gray-400 mt-1">איך אנחנו מגנים על הנתונים שלכם</p>
+        </a>
+    </div>
+</div>
+
+<script>
+// Chat widget on the help page — reuses the same /api/chat endpoint as the
+// floating chat (works with or without an AI key via the fallback chain).
+const helpHistory = document.getElementById('help-chat-history');
+const helpInput = document.getElementById('help-chat-input');
+
+function helpAppendMsg(text, from) {
+    const row = document.createElement('div');
+    row.className = from === 'user'
+        ? 'self-end bg-orange-500 text-white rounded-2xl rounded-br-sm px-3 py-2 max-w-[80%] whitespace-pre-wrap'
+        : 'self-start bg-white border border-gray-200 text-gray-800 rounded-2xl rounded-bl-sm px-3 py-2 max-w-[85%] whitespace-pre-wrap';
+    row.textContent = text;
+    helpHistory.appendChild(row);
+    helpHistory.scrollTop = helpHistory.scrollHeight;
+}
+
+helpInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') helpChatSend(); });
+
+async function helpChatSend() {
+    const q = helpInput.value.trim();
+    if (!q) return;
+    helpAppendMsg(q, 'user');
+    helpInput.value = '';
+    helpAppendMsg('מחפש תשובה...', 'bot');
+    try {
+        const fd = new FormData();
+        fd.append('query', q);
+        const res = await fetch('/api/chat', { method: 'POST', body: fd });
+        const data = await res.json();
+        const msgs = helpHistory.querySelectorAll('div');
+        if (msgs.length) msgs[msgs.length - 1].textContent = data.answer || 'לא קיבלנו תשובה — נסו שוב.';
+    } catch (e) {
+        const msgs = helpHistory.querySelectorAll('div');
+        if (msgs.length) msgs[msgs.length - 1].textContent = 'חיבור נכשל — נסו שוב או שלחו לנו מייל מהטופס.';
+    }
+    helpHistory.scrollTop = helpHistory.scrollHeight;
+}
+
+// Welcome message so the chat never looks dead.
+helpAppendMsg('<i class="fa-solid fa-hand-wave"></i> שלום! שאלו אותי כל דבר על מוצרים, מחירים, הזמנות או החזרות.', 'bot');
+</script>
+{% endblock %}

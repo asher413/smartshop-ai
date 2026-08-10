@@ -1,0 +1,660 @@
+{% extends "layout.html" %}
+{% block title %}{{ product.seo_title or product.name }}{% endblock %}
+{% block meta_description %}{{ product.meta_description or (product.description or "")|truncate(155) }}{% endblock %}
+{% block og_tags %}
+<meta property="og:title" content="{{ product.seo_title or product.name }}">
+<meta property="og:description" content="{{ (product.description or '')|truncate(160) }}">
+<meta property="og:image" content="{{ product.image_url }}">
+<meta property="og:type" content="product">
+{% if product.price %}<meta property="og:price:amount" content="{{ '%.2f'|format(product.price) }}"><meta property="og:price:currency" content="ILS">{% endif %}
+{% endblock %}
+{% block jsonld %}
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org/",
+  "@type": "Product",
+  "name": {{ (product.seo_title or product.name or "")|tojson }},
+  "description": {{ (product.description or "")|truncate(300)|tojson }},
+  "image": {{ (product.image_url or "")|tojson }},
+  "sku": {{ ("smartshop_" ~ product.id)|tojson }},
+  "brand": {
+    "@type": "Brand",
+    "name": {{ (product.supplier_name or "סמארטשופ")|tojson }}
+  },
+  {% if product.rating and product.rating > 0 %}
+  "aggregateRating": {
+    "@type": "AggregateRating",
+    "ratingValue": {{ product.rating }},
+    "reviewCount": {{ product.review_count if product.review_count else 1 }}
+  },
+  {% endif %}
+  "offers": {
+    "@type": "Offer",
+    "url": {{ (site_url ~ "/go/" ~ product.id)|tojson }},
+    "priceCurrency": "ILS",
+    "price": {{ product.price or 0 }},
+    "priceValidUntil": {{ (price_valid_until or '')|tojson }},
+    "availability": "{{ 'https://schema.org/InStock' if product.stock_count and product.stock_count > 0 else 'https://schema.org/OutOfStock' }}"
+  }
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org/",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    {"@type": "ListItem", "position": 1, "name": "בית", "item": {{ (site_url ~ "/")|tojson }}},
+    {% if product.category %}{"@type": "ListItem", "position": 2, "name": {{ product.category|tojson }}, "item": {{ (site_url ~ "/?category=" ~ product.category)|tojson }}},{% endif %}
+    {"@type": "ListItem", "position": {{ 3 if product.category else 2 }}, "name": {{ (product.name or "")|truncate(60)|tojson }}}
+  ]
+}
+</script>
+{% endblock %}
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+    <div class="glass-card p-4">
+        {% if gallery|length > 1 %}
+        <!-- AliExpress-style gallery: main image + clickable thumbnails -->
+        <div class="gallery-main w-full rounded-xl overflow-hidden max-h-[520px] flex items-center justify-center relative" id="gallery-main" style="touch-action: pan-y;">
+            <img src="{{ gallery[0] | imgproxy }}" alt="{{ product.name }}" class="w-full h-auto max-h-[520px] object-contain" id="gallery-main-img" width="520" height="520">
+        </div>
+        <!-- Dot indicators (mobile swipe) -->
+        <div class="flex justify-center gap-1.5 mt-3" id="gallery-dots">
+            {% for img in gallery %}
+            <span class="gallery-dot w-2 h-2 rounded-full {{ 'bg-gray-800' if loop.first else 'bg-gray-300' }} transition-colors cursor-pointer" onclick="setGalleryImage({{ loop.index0 }})" role="button" tabindex="0" aria-label="תמונה {{ loop.index }}"></span>
+            {% endfor %}
+        </div>
+        <div class="flex gap-2 mt-3 overflow-x-auto pb-1" id="gallery-thumbs">
+            {% for img in gallery %}
+            <button type="button" class="gallery-thumb w-20 h-20 shrink-0 {{ 'active' if loop.first }}" onclick="setGalleryImage({{ loop.index0 }})">
+                <img src="{{ img | imgproxy }}" alt="" class="w-full h-full object-cover rounded-xl" loading="lazy">
+            </button>
+            {% endfor %}
+        </div>
+        {% else %}
+        <img src="{{ product.image_url | imgproxy }}" srcset="{{ product.image_url | imgsrcset }}" sizes="(max-width: 768px) 100vw, 520px" alt="{{ product.name }}" class="w-full rounded-xl object-contain max-h-[520px]" style="aspect-ratio:1/1;background:var(--bg-page)" width="520" height="520">
+        {% endif %}
+        {% if product.coupon_code %}
+        <div class="flex items-center gap-2 mt-3 bg-green-500/10 border border-green-500/30 rounded-xl px-3 py-2 text-sm">
+            <i class="fa-solid fa-scissors" style="color:var(--accent-success)"></i>
+            <span class="text-green-300">קופון פעיל באתר הספק: <b class="text-gold">{{ product.coupon_code }}</b></span>
+        </div>
+        {% endif %}
+    </div>
+
+    <div class="space-y-4">
+        <div class="flex items-center justify-between gap-2">
+            <div class="flex items-center gap-2">
+                <h1 class="text-3xl font-black">{{ product.name }}</h1>
+                {% if product.is_verified %}
+                <span class="badge-verified text-xs font-bold px-3 py-1 rounded-full">בדיקת איכות</span>
+                {% endif %}
+            </div>
+            <button id="favorite-btn" onclick="toggleFavorite({{ product.id }})"
+                    class="glass-card w-11 h-11 flex items-center justify-center rounded-full shrink-0 {{ 'text-red-400' if is_favorited else 'text-gray-400' }}"
+                    title="שמור למועדפים" aria-label="{{ 'הסר ממועדפים' if is_favorited else 'שמור למועדפים' }}">
+                <i class="fa-solid fa-heart"></i>
+            </button>
+        </div>
+        <p class="text-gray-400 text-sm">{{ product.description }}</p>
+
+        {% if product.ai_summary %}
+        <div class="ai-review-bite">
+            <p class="text-xs font-bold mb-1" style="color:var(--accent-primary)">חוות דעת מקצועית</p>
+            <p>{{ product.ai_summary }}</p>
+            {% if product.rating and product.rating > 3.5 %}
+            <span class="verified-buyer mt-2"><i class="fa-solid fa-check-circle"></i> רוכשים מאומתים ממליצים</span>
+            {% endif %}
+        </div>
+        {% endif %}
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="glass-card p-4">
+                <h3 class="font-bold mb-2" style="color:var(--accent-success)"><i class="fa-solid fa-thumbs-up ml-1"></i> הקונים אהבו</h3>
+                <ul class="text-sm text-gray-300 space-y-1 list-disc list-inside">
+                    {% for pro in (product.pros or []) %}<li>{{ pro }}</li>{% endfor %}
+                    {% if not product.pros %}<li class="text-gray-300">אין עדיין מספיק ביקורות</li>{% endif %}
+                </ul>
+            </div>
+            <div class="glass-card p-4">
+                <h3 class="font-bold mb-2" style="color:var(--accent-danger)"><i class="fa-solid fa-triangle-exclamation ml-1"></i> שימו לב</h3>
+                <ul class="text-sm text-gray-300 space-y-1 list-disc list-inside">
+                    {% for con in (product.cons or []) %}<li>{{ con }}</li>{% endfor %}
+                    {% if not product.cons %}<li class="text-gray-300">אין עדיין מספיק ביקורות</li>{% endif %}
+                </ul>
+            </div>
+        </div>
+
+        <div class="glass-card p-4">
+            <div class="flex justify-between items-center mb-3">
+                <h3 class="font-bold"><i class="fa-solid fa-scale-balanced ml-1" style="color:var(--accent-primary)"></i> השוואת מחירים בין האתרים שמוכרים את המוצר</h3>
+                <span id="price-war-status" class="text-xs text-gray-400">בודק מחירים עדכניים...</span>
+            </div>
+            <div id="price-war-table" class="hidden text-sm"></div>
+        </div>
+
+        <div class="glass-card p-4" id="price-history-card" style="display:none;">
+            <h3 class="font-bold mb-3"><i class="fa-solid fa-chart-line ml-1" style="color:var(--accent-primary)"></i> היסטוריית מחיר</h3>
+            <canvas id="price-history-chart" height="120"></canvas>
+        </div>
+
+        <div class="flex items-center gap-3 flex-wrap">
+            <span class="text-5xl font-black text-red-500">₪{{ "%.0f"|format(product.price or 0) }}</span>
+            {% if product.local_market_price and product.local_market_price > product.price %}
+            <span class="text-lg text-gray-400 line-through">₪{{ "%.0f"|format(product.local_market_price) }}</span>
+            <span class="discount-tag">-{{ "%.0f"|format((1 - product.price / product.local_market_price) * 100) }}%</span>
+            <span class="text-sm text-green-400 font-bold">חוסכים ₪{{ "%.0f"|format(product.local_market_price - product.price) }}</span>
+            {% endif %}
+        </div>
+        {% if product.shipping_days %}
+        <p class="text-sm" style="color:var(--text-muted)"><i class="fa-solid fa-truck-fast ml-1"></i> משלוח מהיר: {{ product.shipping_days }} ימים{% if product.shipping_reliability_stat %} · אמינות {{ product.shipping_reliability_stat }}%{% endif %}</p>
+        {% endif %}
+
+        <a href="/go/{{ product.id }}" rel="sponsored noopener" class="btn-primary block text-center py-3 px-6 rounded-xl font-bold text-lg">
+            <i class="fa-solid fa-cart-shopping ml-1"></i> קנה עכשיו דרך {{ product.supplier_name }}
+        </a>
+
+        {% if product.stock_count and product.stock_count <= 5 %}
+        <p class="low-stock"><i class="fa-solid fa-box-open"></i> נותרו {{ product.stock_count }} יחידות אחרונות במלאי ספק זה</p>
+        {% endif %}
+        {% if product.is_trending and product.discount_percent and product.discount_percent >= 30 %}
+        <div class="text-center">
+            <span class="countdown-timer" id="premium-countdown">
+                <i class="fa-solid fa-clock ml-1"></i> המחיר המיוחד יפוג בעוד:
+                <span class="cd-digit" id="cd-h">--</span><span class="cd-sep">:</span>
+                <span class="cd-digit" id="cd-m">--</span><span class="cd-sep">:</span>
+                <span class="cd-digit" id="cd-s">--</span>
+            </span>
+        </div>
+        {% endif %}
+
+        <!-- Trust badges — directly below the CTA for maximum impact -->
+        <div class="trust-badges">
+            <span class="trust-badge"><i class="fa-solid fa-lock" style="color:var(--accent-success)"></i> תשלום מאובטח בתקן המחמיר</span>
+            <span class="trust-badge"><i class="fa-solid fa-rotate-left" style="color:var(--accent-primary)"></i> החזרות קלות וללא אותיות קטנות</span>
+            <span class="trust-badge"><i class="fa-solid fa-headset" style="color:var(--accent-secondary)"></i> שירות לקוחות ישראלי</span>
+            {% if product.is_verified %}<span class="premium-deal-badge"><i class="fa-solid fa-circle-check"></i> אומת</span>{% endif %}
+        </div>
+
+        <!-- Transparent affiliate disclosure — builds trust with smart consumers -->
+        <p class="text-[11px] text-gray-400 text-center">
+            <i class="fa-solid fa-link"></i> קישור שותפים — אנו עשויים לקבל עמלה מרכישה זו, ללא עלות נוספת עבורך.
+        </p>
+
+        <div class="flex flex-wrap items-center gap-3 mt-2">
+            <span class="text-xs text-gray-400">שתפו:</span>
+            <a href="https://wa.me/?text={{ ('בדקו את הדיל: ' ~ product.name ~ ' - ' ~ site_url ~ '/product/' ~ product.id)|urlencode }}"
+               target="_blank" rel="noopener" class="inline-flex items-center gap-1.5 text-sm text-green-400 hover:text-green-500 transition px-2 py-1 rounded-lg hover:bg-green-50">
+                <i class="fa-brands fa-whatsapp text-lg"></i>
+            </a>
+            <a href="https://www.facebook.com/sharer/sharer.php?u={{ (site_url ~ '/product/' ~ product.id)|urlencode }}"
+               target="_blank" rel="noopener" class="inline-flex items-center gap-1.5 text-sm text-blue-500 hover:text-blue-600 transition px-2 py-1 rounded-lg hover:bg-blue-50">
+                <i class="fa-brands fa-facebook text-lg"></i>
+            </a>
+            <a href="https://twitter.com/intent/tweet?text={{ (product.name ~ ' — ' ~ site_url ~ '/product/' ~ product.id)|urlencode }}"
+               target="_blank" rel="noopener" class="inline-flex items-center gap-1.5 text-sm text-sky-400 hover:text-sky-500 transition px-2 py-1 rounded-lg hover:bg-sky-50">
+                <i class="fa-brands fa-twitter text-lg"></i>
+            </a>
+            <a href="https://t.me/share/url?url={{ (site_url ~ '/product/' ~ product.id)|urlencode }}&text={{ product.name|urlencode }}"
+               target="_blank" rel="noopener" class="inline-flex items-center gap-1.5 text-sm text-cyan-400 hover:text-cyan-500 transition px-2 py-1 rounded-lg hover:bg-cyan-50">
+                <i class="fa-brands fa-telegram text-lg"></i>
+            </a>
+            <button onclick="navigator.clipboard.writeText('{{ site_url }}/product/{{ product.id }}'); this.innerHTML='<i class="fa-solid fa-circle-check" style="color:var(--accent-success)"></i> הועתק!'; setTimeout(()=>{this.innerHTML='<i class="fa-solid fa-copy"></i>'},1500)"
+                    class="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-700 transition px-2 py-1 rounded-lg hover:bg-gray-100">
+                <i class="fa-solid fa-copy"></i>
+            </button>
+        </div>
+
+        {% if product.coupon_code %}
+        <p class="text-xs text-gray-400"><i class="fa-solid fa-scissors"></i> קוד קופון: <span class="text-gold font-bold">{{ product.coupon_code }}</span></p>
+        {% endif %}
+
+        <div class="glass-card p-4">
+            <h3 class="font-bold text-sm mb-2"><i class="fa-solid fa-bell ml-1" style="color:var(--accent-secondary)"></i> קבלו התראה כשהמחיר יורד</h3>
+            <form id="alert-form" class="flex gap-2">
+                <input type="number" id="alert-target-price" step="1" placeholder="מחיר יעד בש״ח" required
+                       class="flex-1 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-500">
+                <button type="submit" class="btn-primary px-4 py-2 rounded-lg text-sm font-bold">שמור</button>
+            </form>
+            <p id="alert-message" class="text-xs mt-2"></p>
+        </div>
+
+        {% if forecast and forecast.available %}
+        <div class="glass-card p-4 border-r-4 {{ 'border-green-500' if forecast.trend == 'down' else 'border-orange-500' }}">
+            <h3 class="font-bold text-sm mb-2"><i class="fa-solid fa-chart-simple ml-1" style="color:var(--accent-primary)"></i> תחזית מחיר</h3>
+            <p class="text-sm text-gray-300">{{ forecast.prediction }}</p>
+            <p class="text-xs text-gray-400 mt-1">{{ forecast.recommendation }}</p>
+        </div>
+        {% endif %}
+
+        {% if insights and insights.available %}
+        <div class="glass-card p-4 border-r-4 border-gold">
+            <h3 class="font-bold text-sm mb-2"><i class="fa-solid fa-comments ml-1" style="color:var(--accent-secondary)"></i> מה אומרות הביקורות</h3>
+            <p class="text-sm text-gray-300">{{ insights.verdict }}</p>
+            <p class="text-xs text-gray-400 mt-1">{{ insights.count }} ביקורות · {{ insights.positive }} חיוביות · {{ insights.negative }} שליליות</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+{% if product_ads %}
+<div class="container mx-auto px-4 mt-6">
+    {% for ad in product_ads %}
+    <a href="{{ ad.target_url }}" onclick="recordAdClick({{ ad.id }})" rel="sponsored" class="block relative rounded-2xl overflow-hidden group">
+        <img src="{{ ad.image_url }}" alt="{{ ad.name }}" class="w-full h-24 object-cover group-hover:scale-105 transition-transform duration-500">
+        <span class="absolute top-2 right-2 bg-gray-900/60 text-[10px] px-2 py-0.5 rounded-full text-gray-200">פרסומת</span>
+    </a>
+    {% endfor %}
+</div>
+{% endif %}
+
+{% if similar_deals %}
+<section class="container mx-auto px-4 mt-12">
+    <div class="flex items-center justify-between mb-4">
+        <h2 class="text-xl font-bold"><i class="fa-solid fa-trophy ml-1" style="color:var(--accent-secondary)"></i> מוצרים דומים — גם הם חמים</h2>
+        <a href="/" class="text-xs font-bold hover:underline" style="color:var(--accent-primary)">לכל הדילים ←</a>
+    </div>
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+        {% for rec in similar_deals %}
+        <a href="/product/{{ rec.id }}" class="product-card block group relative">
+            <div class="relative overflow-hidden rounded-lg mb-2">
+                <img src="{{ rec.image_url | imgproxy }}" class="h-32 w-full object-contain rounded-lg group-hover:scale-105 transition-transform duration-500" loading="lazy" style="background:var(--bg-page)">
+                {% if rec.discount_percent and rec.discount_percent > 0 %}
+                <span class="discount-badge absolute top-2 left-2">-{{ "%.0f"|format(rec.discount_percent) }}%</span>
+                {% endif %}
+            </div>
+            <p class="font-bold text-sm truncate" style="color:var(--text-primary)">{{ rec.name }}</p>
+            <div class="flex items-baseline gap-2 mt-1">
+                <span class="price-current">₪{{ "%.0f"|format(rec.price or 0) }}</span>
+                {% if rec.local_market_price %}<span class="price-original">₪{{ "%.0f"|format(rec.local_market_price) }}</span>{% endif %}
+            </div>
+            {% if rec.rating and rec.rating > 0 %}<p class="text-xs mt-0.5" style="color:var(--accent-secondary)"><i class="fa-solid fa-star"></i> {{ "%.1f"|format(rec.rating) }}</p>{% endif %}
+        </a>
+        {% endfor %}
+    </div>
+</section>
+{% endif %}
+
+{% if recommended and recommended|length > 0 %}
+<section class="container mx-auto px-4 mt-10">
+    <h2 class="text-xl font-bold mb-3"><i class="fa-solid fa-lightbulb ml-1" style="color:var(--accent-secondary)"></i> קונים חכמים בחרו גם</h2>
+    <div class="cross-sell-strip">
+        <div class="cs-track">
+            {% for rec in recommended[:8] %}
+            <a href="/product/{{ rec.id }}" class="cross-sell-item block">
+                <img src="{{ rec.image_url }}" alt="{{ rec.name }}" onerror="this.src='https://placehold.co/200x140/f8fafc/94a3b8?text='" loading="lazy">
+                <p class="text-xs font-bold mt-2 truncate" style="color:var(--text-primary)">{{ rec.name }}</p>
+                <div class="flex items-center gap-2 mt-0.5">
+                    <span class="price-current text-sm">₪{{ "%.0f"|format(rec.price or 0) }}</span>
+                    {% if rec.local_market_price and rec.local_market_price > rec.price %}
+                    <span class="cs-plus">+ חוסכים ₪{{ "%.0f"|format(rec.local_market_price - rec.price) }}</span>
+                    {% endif %}
+                </div>
+            </a>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+{% endif %}
+
+{% if smart_bundle and smart_bundle.products|length >= 2 %}
+<section class="container mx-auto px-4 mt-10">
+    <div class="glass-card p-6 border-r-4" style="border-color:var(--accent-secondary)">
+        <div class="flex items-center justify-between flex-wrap gap-4 mb-5">
+            <div>
+                <h2 class="text-xl font-bold flex items-center gap-2">
+                    <i class="fa-solid fa-layer-group" style="color:var(--accent-secondary)"></i>
+                    {{ smart_bundle.label }}
+                </h2>
+                <p class="text-sm text-gray-500 mt-1">קנו יחד וחסכו — {{ smart_bundle.discount_pct }}% הנחה על החבילה</p>
+            </div>
+            <span class="px-4 py-2 rounded-xl text-sm font-black" style="background:var(--accent-secondary);color:#fff">
+                {{ smart_bundle.discount_pct }}% הנחה
+            </span>
+        </div>
+        <div class="flex flex-wrap items-center gap-2 sm:gap-3 justify-center mb-5">
+            {% for item in smart_bundle.products %}
+            <a href="/product/{{ item.id }}" class="flex flex-col items-center glass-card p-3 w-28 shrink-0">
+                <img src="{{ item.image_url }}" alt="{{ item.name }}" class="w-16 h-16 object-contain rounded-lg mb-1" style="background:var(--bg-page)" loading="lazy" onerror="this.style.display='none'">
+                <p class="text-[10px] font-bold text-center truncate w-full" style="color:var(--text-primary)">{{ item.name }}</p>
+                <p class="price-current text-xs mt-0.5">₪{{ "%.0f"|format(item.price or 0) }}</p>
+            </a>
+            {% if not loop.last %}
+            <span class="text-2xl font-black text-gray-300">+</span>
+            {% endif %}
+            {% endfor %}
+            <span class="text-2xl font-black text-gray-300">=</span>
+            <div class="flex flex-col items-center shrink-0 min-w-[100px]">
+                <p class="text-[10px] text-gray-400 line-through">₪{{ "%.0f"|format(smart_bundle.total_price) }}</p>
+                <p class="text-2xl font-black" style="color:var(--accent-danger)">₪{{ "%.0f"|format(smart_bundle.bundle_price) }}</p>
+                <p class="text-[10px] font-bold" style="color:var(--accent-success)">חיסכון ₪{{ "%.0f"|format(smart_bundle.savings) }}</p>
+            </div>
+        </div>
+        <p class="text-[11px] text-gray-400 text-center">
+            <i class="fa-solid fa-link"></i> כל מוצר נשלח בנפרד — קישורי שותפים, ללא עלות נוספת.
+        </p>
+    </div>
+</section>
+{% endif %}
+
+<section class="container mx-auto px-4 mt-12 mb-10">
+    <h2 class="text-2xl font-bold mb-4"><i class="fa-solid fa-star ml-1" style="color:var(--accent-secondary)"></i> ביקורות משתמשים{% if avg_rating %} — {{ avg_rating }}/5{% endif %}</h2>
+    {% if user %}
+    <div class="glass-card p-4 mb-6">
+        <h3 class="font-bold text-sm mb-2">{{ "עדכנו את הביקורת שלכם" if my_review else "כתבו ביקורת" }} (+5 מטבעות)</h3>
+        <form id="review-form" class="space-y-3">
+            <div class="flex items-center gap-2" id="star-picker">
+                {% for s in range(5, 0, -1) %}
+                <button type="button" data-star="{{ s }}" class="star-btn text-2xl text-gray-300 hover:text-gold transition" onclick="setStars({{ s }})">★</button>
+                {% endfor %}
+                <input type="hidden" name="rating" id="review-rating" value="5">
+            </div>
+            <textarea name="comment" id="review-comment" rows="2" placeholder="מה דעתכם על המוצר?"
+                      class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-500"></textarea>
+            <button type="submit" class="btn-primary px-4 py-2 rounded-lg text-sm font-bold">פרסום ביקורת</button>
+        </form>
+        <p id="review-message" class="text-xs mt-2"></p>
+    </div>
+    {% endif %}
+    <div class="space-y-3">
+        {% for review, reviewer in reviews %}
+        <div class="glass-card p-4">
+            <div class="flex items-center gap-2 mb-1">
+                <span class="text-gold text-sm">{{ "★" * review.rating }}</span>
+                <span class="text-xs text-gray-400">{{ reviewer.email.split('@')[0] }} · {{ review.created_at.strftime('%d/%m/%Y') if review.created_at else '' }}</span>
+            </div>
+            {% if review.comment %}<p class="text-sm text-gray-300">{{ review.comment }}</p>{% endif %}
+        </div>
+        {% else %}
+        <div class="glass-card p-6 text-gray-400">עדיין אין ביקורות. היו הראשונים לדרג! <i class="fa-solid fa-star"></i></div>
+        {% endfor %}
+    </div>
+</section>
+
+{% if recommended %}
+<section class="mt-12">
+    <h2 class="text-2xl font-bold mb-4">מוצרים שאולי תאהב</h2>
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+        {% for rec in recommended %}
+        <a href="/product/{{ rec.id }}" class="glass-card p-3 block">
+            <img src="{{ rec.image_url }}" class="rounded-lg h-32 w-full object-cover mb-2">
+            <p class="font-bold text-sm truncate">{{ rec.name }}</p>
+            <p class="text-gold font-bold text-sm">₪{{ "%.0f"|format(rec.price or 0) }}</p>
+        </a>
+        {% endfor %}
+    </div>
+</section>
+{% endif %}
+</div>
+
+<!-- Sticky mobile buy bar: price + CTA + trust badges always visible -->
+<div class="md:hidden fixed bottom-0 inset-x-0 z-50 bg-white/95 backdrop-blur border-t border-gray-200 shadow-[0_-4px_20px_rgba(16,24,40,0.08)] px-4 py-3">
+    <div class="flex items-center justify-between gap-3">
+        <div class="min-w-0">
+            <p class="text-[10px] text-gray-400">המחיר הכי טוב</p>
+            <div class="flex items-baseline gap-2">
+                <span class="text-xl font-black text-red-500">₪{{ "%.0f"|format(product.price or 0) }}</span>
+                {% if product.local_market_price and product.local_market_price > product.price %}
+                <span class="text-xs text-gray-400 line-through">₪{{ "%.0f"|format(product.local_market_price) }}</span>
+                {% endif %}
+            </div>
+        </div>
+        <div class="flex flex-col items-end gap-1">
+            <a href="/go/{{ product.id }}" rel="sponsored noopener" class="btn-primary flex-1 max-w-[240px] text-center py-3 rounded-xl font-black text-sm">
+                קנה עכשיו
+            </a>
+            <span class="text-[9px] text-gray-400"><i class="fa-solid fa-lock"></i> מאובטח · <i class="fa-solid fa-link"></i> קישור שותפים</span>
+        </div>
+    </div>
+</div>
+<!-- Spacer so the sticky bar never covers the last section on mobile -->
+<div class="md:hidden h-20"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<script>
+function supplierIcon(source) {
+    const key = (source || '').toLowerCase();
+    if (key.includes('amazon')) return '<i class="fa-brands fa-amazon" style="color:#ff9900"></i>';
+    if (key.includes('ebay')) return '<i class="fa-brands fa-ebay" style="color:#e53238"></i>';
+    if (key.includes('temu')) return '<i class="fa-solid fa-shop" style="color:#fb7701"></i>';
+    if (key.includes('aliexpress') || key.includes('ali')) return '<i class="fa-solid fa-shop" style="color:#e62e04"></i>';
+    if (key.includes('awin')) return '<i class="fa-solid fa-handshake"></i>';
+    if (key.includes('cj')) return '<i class="fa-solid fa-link"></i>';
+    if (key.includes('rakuten')) return '<i class="fa-solid fa-building-columns"></i>';
+    if (key.includes('bhphoto') || key.includes('b&h')) return '<i class="fa-solid fa-camera"></i>';
+    return '<i class="fa-solid fa-store"></i>';
+}
+
+const GALLERY_IMAGES = {{ gallery|tojson }};
+let _galleryIdx = 0;
+function setGalleryImage(idx) {
+    const main = document.getElementById('gallery-main-img');
+    if (!main || !GALLERY_IMAGES[idx]) return;
+    _galleryIdx = idx;
+    document.querySelectorAll('.gallery-thumb').forEach((t, i) => t.classList.toggle('active', i === idx));
+    document.querySelectorAll('.gallery-dot').forEach((d, i) => { d.className = 'gallery-dot w-2 h-2 rounded-full transition-colors cursor-pointer ' + (i === idx ? 'bg-gray-800' : 'bg-gray-300'); });
+    main.classList.add('fade-out');
+    setTimeout(() => {
+        main.src = GALLERY_IMAGES[idx];
+        main.classList.remove('fade-out');
+    }, 180);
+}
+
+// ── Swipe gesture for gallery (mobile touch) ──
+(function() {
+    const el = document.getElementById('gallery-main');
+    if (!el || GALLERY_IMAGES.length < 2) return;
+    let startX = 0, startY = 0, moved = false;
+    el.addEventListener('touchstart', function(e) {
+        startX = e.touches[0].clientX;
+        startY = e.touches[0].clientY;
+        moved = false;
+    }, {passive: true});
+    el.addEventListener('touchmove', function(e) {
+        if (Math.abs(e.touches[0].clientY - startY) > Math.abs(e.touches[0].clientX - startX)) return;
+        moved = true;
+    }, {passive: true});
+    el.addEventListener('touchend', function(e) {
+        if (!moved) return;
+        const diff = startX - e.changedTouches[0].clientX;
+        if (Math.abs(diff) < 40) return; // too small
+        if (diff > 0 && _galleryIdx < GALLERY_IMAGES.length - 1) {
+            setGalleryImage(_galleryIdx + 1);
+        } else if (diff < 0 && _galleryIdx > 0) {
+            setGalleryImage(_galleryIdx - 1);
+        }
+    });
+})();
+
+async function loadPriceWar() {
+    const statusEl = document.getElementById('price-war-status');
+    const tableEl = document.getElementById('price-war-table');
+    try {
+        const res = await fetch('/api/price-war/{{ product.id }}');
+        const data = await res.json();
+        if (data.status !== 'ok' || !data.offers || !data.offers.length) {
+            statusEl.textContent = data.message || 'לא זמין כרגע';
+            return;
+        }
+        // Drop offers without a usable price so a "₪0" row can't win the badge.
+        const offers = (data.offers || []).filter(o => o.price && Number(o.price) > 0);
+        if (!offers.length) {
+            statusEl.textContent = 'לא זמין כרגע';
+            return;
+        }
+        // Sort cheapest-first so the best deal is always on top.
+        offers.sort((a, b) => Number(a.price) - Number(b.price));
+        const cheapest = offers[0];
+        const mostExpensive = offers[offers.length - 1];
+        const potential = Math.max(0, (mostExpensive.price || 0) - (cheapest.price || 0));
+
+        const rows = offers.map(o => {
+            const isBest = o === cheapest && offers.length > 1;
+            const approx = o.approximate_match
+                ? ' <span class="text-[10px] text-gray-400">(התאמה משוערת)</span>'
+                : '';
+            const badge = isBest
+                ? ' <span class="bg-green-500/20 text-green-300 text-[10px] font-bold px-2 py-0.5 rounded-full"><i class="fa-solid fa-trophy"></i> המחיר הזול ביותר</span>'
+                : '';
+            const savings = isBest && potential > 0
+                ? ` <span class="text-[10px] text-green-400">חוסכים עד ₪${potential.toFixed(0)}</span>`
+                : '';
+            const link = o.url
+                ? `<a href="${escapeHtml(o.url)}" target="_blank" rel="sponsored noopener" class="text-indigo-300 hover:text-indigo-200 underline text-xs">לחנות ←</a>`
+                : '';
+            const shipping = o.shipping_time ? `<span class="text-[10px] text-gray-400"> · ${escapeHtml(o.shipping_time)}</span>` : '';
+            return `
+            <div class="flex items-center justify-between gap-3 py-2.5 border-b border-white/5 last:border-0 ${isBest ? '' : ''}">
+                <div class="flex items-center gap-2 min-w-0">
+                    <span class="text-sm shrink-0 font-bold" style="color:var(--accent-primary)">${escapeHtml(o.source)}</span>
+                    <div class="min-w-0">
+                        <p class="font-bold text-sm truncate">${escapeHtml(o.source)}${badge}</p>
+                        <p class="text-[10px] text-gray-400">${approx}${shipping}</p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-3 shrink-0">
+                    <span class="text-gold font-black ${isBest ? 'text-green-300' : ''}">₪${Number(o.price || 0).toFixed(0)}</span>
+                    ${savings}
+                    ${link}
+                </div>
+            </div>`;
+        }).join('');
+
+        tableEl.innerHTML = rows + (potential > 0 && offers.length > 1
+            ? `<p class="text-xs text-gray-400 pt-2"><i class="fa-solid fa-lightbulb"></i> אותו מוצר נמכר באתרים שונים — ההפרש בין הזול ליקר: <span class="text-green-400 font-bold">₪${potential.toFixed(0)}</span></p>`
+            : '');
+        tableEl.classList.remove('hidden');
+        statusEl.classList.add('hidden');
+    } catch (e) {
+        statusEl.textContent = 'ההשוואה לא זמינה כרגע';
+    }
+}
+loadPriceWar();
+loadPriceHistory();
+
+let selectedStars = 5;
+function setStars(n) {
+    selectedStars = n;
+    document.getElementById('review-rating').value = n;
+    document.querySelectorAll('.star-btn').forEach(b => {
+        b.classList.toggle('text-gold', parseInt(b.dataset.star) <= n);
+        b.classList.toggle('text-gray-300', parseInt(b.dataset.star) > n);
+    });
+}
+const reviewForm = document.getElementById('review-form');
+if (reviewForm) {
+    reviewForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const msg = document.getElementById('review-message');
+        const formData = new FormData();
+        formData.append('rating', document.getElementById('review-rating').value);
+        formData.append('comment', document.getElementById('review-comment').value);
+        try {
+            const res = await fetch('/api/reviews/{{ product.id }}', { method: 'POST', body: formData });
+            if (res.status === 401) { window.location.href = '/login'; return; }
+            const data = await res.json();
+            msg.textContent = data.message || '';
+            msg.className = 'text-xs mt-2 ' + (data.status === 'ok' ? 'text-green-400' : 'text-red-400');
+            if (data.status === 'ok') setTimeout(() => location.reload(), 900);
+        } catch (err) {
+            msg.textContent = 'שגיאה בשליחת הביקורת';
+        }
+    });
+}
+function recordAdClick(adId) {
+    fetch(`/api/ads/${adId}/click`, { method: 'POST' });
+}
+
+{% if product.is_trending and product.discount_percent and product.discount_percent >= 30 %}
+(function() {
+    const hEl = document.getElementById('cd-h');
+    const mEl = document.getElementById('cd-m');
+    const sEl = document.getElementById('cd-s');
+    if (!hEl) return;
+    const now = new Date();
+    const end = new Date(now);
+    end.setHours(24, 0, 0, 0);
+    const pad = (n) => String(n).padStart(2, '0');
+    function tick() {
+        const diff = Math.max(0, Math.floor((end - new Date()) / 1000));
+        hEl.textContent = pad(Math.floor(diff / 3600));
+        mEl.textContent = pad(Math.floor((diff % 3600) / 60));
+        sEl.textContent = pad(diff % 60);
+    }
+    tick();
+    setInterval(tick, 1000);
+})();
+{% endif %}
+
+async function loadPriceHistory() {
+    try {
+        const res = await fetch('/api/price-history/{{ product.id }}');
+        const data = await res.json();
+        if (!data.prices || data.prices.length < 2) return; // not enough history yet — leave hidden
+        document.getElementById('price-history-card').style.display = 'block';
+        new Chart(document.getElementById('price-history-chart'), {
+            type: 'line',
+            data: {
+                labels: data.labels,
+                datasets: [{
+                    label: 'מחיר (₪)',
+                    data: data.prices,
+                    borderColor: '#6366f1',
+                    backgroundColor: 'rgba(99,102,241,0.1)',
+                    tension: 0.3,
+                    fill: true,
+                }]
+            },
+            options: {
+                plugins: { legend: { display: false } },
+                scales: {
+                    x: { ticks: { color: '#94a3b8' }, grid: { color: 'rgba(255,255,255,0.05)' } },
+                    y: { ticks: { color: '#94a3b8' }, grid: { color: 'rgba(255,255,255,0.05)' } },
+                }
+            }
+        });
+    } catch (e) { /* chart is a nice-to-have, fail silently */ }
+}
+
+async function toggleFavorite(productId) {
+    const btn = document.getElementById('favorite-btn');
+    try {
+        const res = await fetch(`/api/favorites/${productId}/toggle`, { method: 'POST' });
+        if (res.status === 401) { window.location.href = '/login'; return; }
+        const data = await res.json();
+        btn.classList.toggle('text-red-400', data.favorited);
+        btn.classList.toggle('text-gray-400', !data.favorited);
+    } catch (e) { /* fail silently, non-critical UI action */ }
+}
+
+document.getElementById('alert-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const price = document.getElementById('alert-target-price').value;
+    const msgEl = document.getElementById('alert-message');
+    const formData = new FormData();
+    formData.append('product_id', '{{ product.id }}');
+    formData.append('target_price', price);
+    try {
+        const res = await fetch('/api/price-alerts', { method: 'POST', body: formData });
+        if (res.status === 401) { window.location.href = '/login'; return; }
+        const data = await res.json();
+        msgEl.textContent = data.message || '';
+        msgEl.className = 'text-xs mt-2 ' + (data.status === 'ok' ? 'text-green-400' : 'text-red-400');
+    } catch (e) {
+        msgEl.textContent = 'שגיאה בשמירת ההתראה';
+    }
+});
+</script>
+{% endblock %}
+
+<!-- Sticky buy bar (mobile) -->
+<div class="sticky-buy-bar lg:hidden">
+    <div class="flex-1">
+        <span class="text-xl font-bold text-gray-900">{{ "₪%.0f"|format(product.price or 0) }}</span>
+        {% if product.original_price and product.original_price > product.price %}
+        <span class="text-xs text-gray-400 line-through mr-2">₪{{ "%.0f"|format(product.original_price) }}</span>
+        {% endif %}
+    </div>
+    <a href="/go/{{ product.id }}" rel="sponsored noopener" class="btn-buy">קנה עכשיו</a>
+</div>

@@ -1,0 +1,333 @@
+{% extends "layout.html" %}
+{% block title %}סמארטשופ | הדילים החמים ביותר{% endblock %}
+{% block meta_description %}השוואת מחירים חכמה בסיוע טכנולוגי בין AliExpress, Amazon, eBay ו-Temu — הדילים החמים ביותר, מעודכנים אוטומטית, במקום אחד.{% endblock %}
+{% block jsonld %}
+{% if products %}
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "ItemList",
+  "itemListElement": [
+    {% for product in products %}
+    {
+      "@type": "ListItem",
+      "position": {{ loop.index }},
+      "url": {{ (site_url ~ "/product/" ~ product.id)|tojson }}
+    }{{ "," if not loop.last }}
+    {% endfor %}
+  ]
+}
+</script>
+{% endif %}
+{% endblock %}
+{% block content %}
+<div class="container mx-auto px-4 sm:px-6 lg:px-8 pt-6 pb-16">
+    <!-- AliExpress-style hero: blue banner + voucher/featured panels -->
+    <section class="ae-hero p-8 sm:p-10 mb-8 relative overflow-hidden">
+        <div class="flex flex-col lg:flex-row items-center gap-8 relative z-10">
+            <div class="flex-1 text-center lg:text-right">
+                <h1 class="text-3xl sm:text-4xl font-black text-white leading-tight">{{ banner.title }}</h1>
+                <p class="text-white/85 text-base sm:text-lg mt-3">{{ banner.subtitle }}</p>
+                <div class="flex flex-wrap gap-2 mt-5 justify-center lg:justify-start">
+                    <span class="bg-white/15 backdrop-blur text-white text-xs font-bold px-3 py-1.5 rounded-full"><i class="fa-solid fa-truck-fast"></i> משלוח חינם על פריטים נבחרים</span>
+                    <span class="bg-white/15 backdrop-blur text-white text-xs font-bold px-3 py-1.5 rounded-full"><i class="fa-solid fa-lock"></i> החזרות חינם תוך 90 יום</span>
+                    <span class="bg-white/15 backdrop-blur text-white text-xs font-bold px-3 py-1.5 rounded-full"><i class="fa-solid fa-shield-halved"></i> הגנת קונה מלאה</span>
+                </div>
+            </div>
+            <div class="shrink-0">
+                <div class="bg-white rounded-2xl p-5 w-56 shadow-2xl">
+                    <p class="text-xs font-black text-gray-400 mb-2 text-center">מבצעים מובילים <i class="fa-solid fa-trophy"></i></p>
+                    {% if deal %}
+                    <img src="{{ deal.product.image_url | imgproxy }}" alt="{{ deal.product.name }}" class="w-full h-32 object-cover rounded-xl mb-3">
+                    <p class="text-[11px] font-bold text-gray-700 truncate mb-2">{{ deal.product.name }}</p>
+                    <div class="flex items-center justify-between">
+                        <span class="text-orange-600 font-black text-lg">₪{{ "%.0f"|format(deal.product.price or 0) }}</span>
+                        {% if deal.product.discount_percent %}<span class="bg-red-500 text-white text-[10px] font-black px-2 py-0.5 rounded-full">-{{ "%.0f"|format(deal.product.discount_percent) }}%</span>{% endif %}
+                    </div>
+                    <a href="/product/{{ deal.product.id }}" class="block text-center bg-gray-900 text-white text-xs font-black py-2 rounded-lg mt-3 hover:bg-orange-600 transition">צפו בדיל</a>
+                    {% else %}
+                    <p class="text-sm text-gray-400 text-center py-8">בקרוב דילים חדשים <i class="fa-solid fa-fire"></i></p>
+        {% endif %}
+    </div>
+        </div>
+    </div>
+</div>
+        </div>
+    </section>
+
+    {% if ticker_products %}
+    <!-- Hot-deals ticker: real product names with prices, scrolling RTL -->        <div class="deals-ticker mb-8" aria-label="הדילים הלוהטים עכשיו" role="marquee">
+        <div class="flex items-center gap-2 px-4">
+            <span class="text-red-500 text-lg shrink-0"><i class="fa-solid fa-fire"></i></span>
+            <div class="ticker-track">
+                {% for product in ticker_products %}
+                <a href="/product/{{ product.id }}" class="text-xs font-bold text-gray-700 hover:text-orange-600 transition">
+                    {{ product.name }} <span class="text-orange-600 font-black">₪{{ "%.0f"|format(product.price or 0) }}</span>
+                    {% if product.discount_percent %}<span class="text-red-500">-{{ "%.0f"|format(product.discount_percent) }}%</span>{% endif %}
+                </a>
+                {% endfor %}
+                {% for product in ticker_products %}
+                <a href="/product/{{ product.id }}" class="text-xs font-bold text-gray-700 hover:text-orange-600 transition" aria-hidden="true">
+                    {{ product.name }} <span class="text-orange-600 font-black">₪{{ "%.0f"|format(product.price or 0) }}</span>
+                    {% if product.discount_percent %}<span class="text-red-500">-{{ "%.0f"|format(product.discount_percent) }}%</span>{% endif %}
+                </a>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Value propositions strip -->
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
+        <div class="ae-prop glass-card p-4 flex items-center gap-3">
+            <i class="fa-solid fa-truck-fast text-2xl"></i>
+            <div><p class="font-bold text-sm">משלוח חינם</p><p class="text-xs text-gray-500">על פריטי Choice נבחרים</p></div>
+        </div>
+        <div class="ae-prop glass-card p-4 flex items-center gap-3">
+            <span class="text-2xl"><i class="fa-solid fa-bolt"></i></span>
+            <div><p class="font-bold text-sm">אספקה מהירה</p><p class="text-xs text-gray-500">החזרים כספיים על בעיות במסירה</p></div>
+        </div>
+        <div class="ae-prop glass-card p-4 flex items-center gap-3">
+            <span class="text-2xl"><i class="fa-solid fa-rotate-left"></i></span>
+            <div><p class="font-bold text-sm">החזרות חינם</p><p class="text-xs text-gray-500">תוך 90 יום</p></div>
+        </div>
+    </div>
+
+    <!-- Trust + security strip -->
+    <div class="trust-strip mb-8">
+        <span class="trust-strip-item"><i class="fa-solid fa-shield-halved"></i> תשלום מאובטח בתקן SSL</span>
+        <span class="trust-strip-item"><i class="fa-solid fa-rotate-left"></i> החזרות קלות ללא אותיות קטנות</span>
+        <span class="trust-strip-item"><i class="fa-solid fa-headset"></i> שירות לקוחות ישראלי</span>
+        <span class="trust-strip-item"><i class="fa-solid fa-star"></i> אלפי לקוחות מרוצים</span>
+        <span class="trust-strip-item"><i class="fa-solid fa-truck"></i> משלוח מהיר עד הבית</span>
+    </div>
+
+    {% if deal %}
+    <!-- Deal-of-the-day card: white with countdown (סופר דיל) -->
+    <a href="/product/{{ deal.product.id }}" class="block glass-card p-5 mb-8 border-orange-200 hover:border-orange-400 transition overflow-hidden relative">
+        <div class="flex items-center gap-4 flex-wrap relative">
+            <div class="text-4xl"><i class="fa-solid fa-trophy"></i></div>
+            <div class="flex-1 min-w-[220px]">
+                <div class="flex items-center gap-2 flex-wrap mb-1">
+                    <span class="bg-red-500 text-white text-[10px] font-black px-2 py-1 rounded-lg">סופר דיל</span>
+                    <p class="text-orange-600 font-black">{{ deal_hook }}</p>
+                    {% if deal.product.discount_percent %}
+                    <span class="bg-red-500 text-white text-[10px] font-black px-2 py-0.5 rounded-full">-{{ "%.0f"|format(deal.product.discount_percent) }}%</span>
+                    {% endif %}
+                </div>
+                <p class="text-sm text-gray-600">{{ deal.product.name }} — רק <span class="text-orange-600 font-black text-lg">₪{{ "%.0f"|format(deal.product.price or 0) }}</span>{% if deal.product.coupon_code %} · קופון {{ deal.product.coupon_code }}{% endif %}</p>
+            </div>
+            <div class="flex items-center gap-3 shrink-0">
+                <div class="text-center hidden sm:block" id="deal-countdown">
+                    <p class="text-[10px] text-gray-500 mb-1">מסתיים ב-</p>
+                    <div class="flex gap-1.5">
+                        <div class="bg-orange-50 rounded-lg px-2 py-1.5 min-w-[52px] text-center border border-orange-200"><span id="dc-hours" class="text-lg font-black text-orange-600 block leading-none">--</span><span class="text-[9px] text-gray-500">שעות</span></div>
+                        <div class="bg-orange-50 rounded-lg px-2 py-1.5 min-w-[52px] text-center border border-orange-200"><span id="dc-minutes" class="text-lg font-black text-orange-600 block leading-none">--</span><span class="text-[9px] text-gray-500">דקות</span></div>
+                        <div class="bg-orange-50 rounded-lg px-2 py-1.5 min-w-[52px] text-center border border-orange-200"><span id="dc-seconds" class="text-lg font-black text-orange-600 block leading-none">--</span><span class="text-[9px] text-gray-500">שניות</span></div>
+                    </div>
+                </div>
+                <span class="btn-primary px-5 py-2 rounded-xl text-sm font-bold">לצפייה בדיל <i class="fa-solid fa-arrow-left"></i></span>
+            </div>
+        </div>
+    </a>
+    {% endif %}
+
+    {% if home_ads %}
+    <div class="mb-8">
+        {% for ad in home_ads %}
+        <a href="{{ ad.target_url }}" onclick="recordAdClick({{ ad.id }})" rel="sponsored" class="block relative rounded-2xl overflow-hidden group">
+            <img src="{{ ad.image_url }}" alt="{{ ad.name }}" class="w-full h-36 object-cover group-hover:scale-105 transition-transform duration-500">
+            <span class="absolute top-2 right-2 bg-gray-900/60 text-[10px] px-2 py-0.5 rounded-full text-gray-200">פרסומת</span>
+        </a>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    {% if recently_viewed %}
+    <div class="mb-10">
+        <h2 class="text-lg font-bold mb-3 text-gray-300"><i class="fa-solid fa-eye ml-1"></i> המשיכו מאיפה שהפסקתם</h2>
+        <div class="flex gap-4 overflow-x-auto pb-2">
+            {% for product in recently_viewed %}
+            <a href="/product/{{ product.id }}" class="glass-card p-3 shrink-0 w-36 block">
+                <img src="{{ product.image_url | imgproxy }}" class="rounded-lg h-24 w-full object-cover mb-2">
+                <p class="text-xs font-bold truncate">{{ product.name }}</p>
+                <p class="text-gold font-bold text-xs">₪{{ "%.0f"|format(product.price or 0) }}</p>
+            </a>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-6">
+        <h2 class="text-2xl font-black text-gray-900">היום במבצעים <i class="fa-solid fa-fire"></i></h2>
+        <div class="flex items-center gap-3">
+            <span class="text-sm text-gray-500">{{ total_count }} מוצרים</span>
+            <div class="budget-chips hidden sm:flex">
+                <a href="/search?min_price=0&max_price=50&sort=newest" class="budget-chip"><i class="fa-solid fa-coins"></i> עד ₪50</a>
+                <a href="/search?min_price=0&max_price=100&sort=newest" class="budget-chip"><i class="fa-solid fa-coins"></i> עד ₪100</a>
+                <a href="/search?q=משלוח חינם&sort=newest" class="budget-chip"><i class="fa-solid fa-truck-fast"></i> משלוח חינם</a>
+                <a href="/search?min_rating=4&sort=rating" class="budget-chip"><i class="fa-solid fa-star"></i> 4+ כוכבים</a>
+            </div>
+            <select onchange="location.href='/?sort='+this.value+'{{ '&category=' + active_category if active_category else '' }}'"
+                    class="fancy-select bg-white border border-gray-200 rounded-lg px-3 py-1.5 text-sm outline-none">
+                <option value="newest" {{ 'selected' if active_sort == 'newest' }}>החדשים ביותר</option>
+                <option value="price_asc" {{ 'selected' if active_sort == 'price_asc' }}>מחיר: נמוך לגבוה</option>
+                <option value="price_desc" {{ 'selected' if active_sort == 'price_desc' }}>מחיר: גבוה לנמוך</option>
+                <option value="rating" {{ 'selected' if active_sort == 'rating' }}>דירוג הגבוה ביותר</option>
+            </select>
+        </div>
+    </div>
+
+    {% if not products %}
+    <div class="glass-card empty-state-cta">
+        <i class="fa-solid fa-gem"></i>
+        <h3>דילים חמים בדרך אליכם</h3>
+        <p>אנחנו סורקים את AliExpress, Amazon, eBay ו-Temu מסביב לשעון כדי להביא לכם את המחירים הכי טובים. בקרוב מאוד תמצאו כאן מבצעים שווים!</p>
+        <div class="trust-strip" style="margin-bottom:1rem">
+            <span class="trust-strip-item"><i class="fa-solid fa-magnifying-glass"></i> משווים בין 8 ספקים</span>
+            <span class="trust-strip-item"><i class="fa-solid fa-bolt"></i> מתעדכנים בזמן אמת</span>
+            <span class="trust-strip-item"><i class="fa-solid fa-shield"></i> קישורי שותפים מאובטחים</span>
+        </div>
+        <a href="/admin" class="btn-primary px-6 py-3 rounded-xl text-sm font-bold inline-block btn-primary-glow">הפעילו איסוף מוצרים <i class="fa-solid fa-rocket mr-1"></i></a>
+    </div>
+    {% endif %}
+
+    {% if side_ads %}
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+        {% for ad in side_ads %}
+        <a href="{{ ad.target_url }}" onclick="recordAdClick({{ ad.id }})" rel="sponsored" class="glass-card p-3 flex items-center gap-3 hover:border-indigo-400/40 transition">
+            <img src="{{ ad.image_url }}" alt="" class="w-20 h-16 object-cover rounded-lg">
+            <div class="flex-1"><p class="text-sm font-bold">{{ ad.name }}</p><p class="text-[10px] text-gray-400">פרסומת</p></div>
+        </a>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <div class="flex flex-col lg:flex-row gap-6">
+        <!-- AliExpress-style filter sidebar (sticky) -->
+        <aside class="lg:w-64 shrink-0 space-y-5 lg:sticky lg:top-40 self-start hidden lg:block" id="home-sidebar">
+            <form method="get" action="/" class="glass-card p-4 space-y-5">
+                <div class="flex items-center gap-2 border-b border-gray-100 pb-3">
+                    <i class="fa-solid fa-sliders text-orange-500"></i>
+                    <h3 class="font-black text-sm">מסננים</h3>
+                </div>
+                <div>
+                    <h3 class="font-bold text-sm mb-2 text-gray-800">קטגוריה</h3>
+                    <div class="space-y-1.5 max-h-72 overflow-y-auto">
+                        <label class="flex items-center gap-2 text-sm cursor-pointer {% if not active_category %}text-orange-500 font-bold{% else %}text-gray-600{% endif %}">
+                            <input type="radio" name="category" value="" {% if not active_category %}checked{% endif %} class="accent-orange-500" onchange="this.form.submit()">הכל
+                        </label>
+                        {% for c in categories %}
+                        <label class="flex items-center gap-2 text-sm cursor-pointer {% if active_category == c %}text-orange-500 font-bold{% else %}text-gray-600{% endif %}">
+                            <input type="radio" name="category" value="{{ c }}" {% if active_category == c %}checked{% endif %} class="accent-orange-500" onchange="this.form.submit()">{{ c }}
+                        </label>
+                        {% endfor %}
+                    </div>
+                </div>
+                <div>
+                    <h3 class="font-bold text-sm mb-2 text-gray-800">מיון</h3>
+                    <select name="sort" class="w-full bg-white border border-gray-200 rounded-lg px-2 py-1.5 text-sm outline-none" onchange="this.form.submit()">
+                        <option value="newest" {% if active_sort == 'newest' %}selected{% endif %}>החדשים ביותר</option>
+                        <option value="price_asc" {% if active_sort == 'price_asc' %}selected{% endif %}>מחיר: נמוך לגבוה</option>
+                        <option value="price_desc" {% if active_sort == 'price_desc' %}selected{% endif %}>מחיר: גבוה לנמוך</option>
+                        <option value="rating" {% if active_sort == 'rating' %}selected{% endif %}>דירוג הגבוה ביותר</option>
+                    </select>
+                </div>
+            </form>
+        </aside>
+        <div class="flex-1 min-w-0">
+            <!-- Mobile filter toggle -->
+            <button type="button" onclick="document.getElementById('home-sidebar').classList.toggle('hidden'); document.getElementById('home-sidebar').classList.toggle('lg:block')" class="lg:hidden mb-4 text-xs font-bold bg-white border border-gray-200 rounded-lg px-3 py-2 shadow-sm" aria-label="פתיחת מסננים">
+                <i class="fa-solid fa-sliders ml-1 text-orange-500"></i>מסננים
+            </button>
+            <!-- Mobile budget chips -->
+            <div class="budget-chips flex sm:hidden mb-4">
+                <a href="/search?min_price=0&max_price=50&sort=newest" class="budget-chip"><i class="fa-solid fa-coins"></i> עד ₪50</a>
+                <a href="/search?min_price=0&max_price=100&sort=newest" class="budget-chip"><i class="fa-solid fa-coins"></i> עד ₪100</a>
+                <a href="/search?q=משלוח חינם&sort=newest" class="budget-chip"><i class="fa-solid fa-truck-fast"></i> משלוח חינם</a>
+            </div>
+            <p class="text-sm font-bold text-gray-800 mb-4">{{ total_count }} תוצאות</p>
+    <div class="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-4">
+        {% for product in products %}
+        <div onclick="window.location.href='/product/{{ product.id }}'" class="product-card p-3 flex flex-col justify-between relative cursor-pointer group">
+            <div class="relative overflow-hidden rounded-xl mb-2">
+                <img src="{{ product.image_url | imgproxy if product.image_url else 'https://placehold.co/400x400/f4f6f8/94a3b8?text=אין+תמונה' }}" srcset="{{ product.image_url | imgsrcset if product.image_url else '' }}" sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw" alt="{{ product.name or 'מוצר' }}" class="w-full h-24 sm:h-28 object-cover rounded-lg group-hover:scale-110 transition-transform duration-500" loading="lazy" onerror="this.src='https://placehold.co/400x400/f4f6f8/94a3b8?text=אין+תמונה'">
+                <button onclick="event.stopPropagation(); toggleCardFavorite({{ product.id }}, this)" class="fav-btn absolute bottom-2 left-2 w-8 h-8 rounded-full bg-white/90 shadow flex items-center justify-center" title="שמור למועדפים" aria-label="שמור למועדפים">
+                    <i class="fa-regular fa-heart text-gray-400"></i>
+                </button>
+                {% if product.is_trending %}
+                <span class="absolute top-2 right-2 bg-red-500/100 text-white text-[10px] font-bold px-2 py-1 rounded-full shadow-lg"><i class="fa-solid fa-fire"></i> פופולרי</span>
+                {% endif %}
+                {% if product.discount_percent and product.discount_percent > 0 %}
+                <span class="absolute top-2 left-2 bg-red-500 text-white text-[11px] font-black px-2 py-1 rounded-lg shadow-lg">-{{ "%.0f"|format(product.discount_percent) }}%</span>
+                {% endif %}
+                {% if product.stock_count is not none and product.stock_count <= 5 and product.stock_count > 0 %}
+                <span class="low-stock absolute bottom-2 left-2">נותרו {{ product.stock_count }}</span>
+                {% endif %}
+                {% if product.supplier_name %}
+                <span class="absolute bottom-2 right-2 bg-black/60 backdrop-blur text-white text-[9px] font-bold px-1.5 py-0.5 rounded-md" title="מוכר">{{ product.supplier_name }}</span>
+                {% endif %}
+            </div>
+            <p class="text-[10px] text-orange-500 font-bold uppercase mb-1">{{ product.category or product.supplier_name }}</p>
+                        <h3 class="font-bold text-sm text-gray-900 truncate mb-1.5 group-hover:text-orange-600 transition-colors">{{ product.name or 'מוצר ללא שם' }}</h3>
+
+            {% if product.rating and product.rating > 0 %}
+            <div class="flex items-center gap-1 mb-2 flex-wrap">
+                <span class="text-[11px] text-gold font-bold">★ {{ "%.1f"|format(product.rating) }}</span>
+                <span class="text-[10px] text-gray-300">({{ product.review_count }} ביקורות)</span>
+                {% if product.coupon_code %}<span class="text-[10px] text-green-400 font-bold bg-green-500/10 px-1.5 py-0.5 rounded-full"><i class="fa-solid fa-scissors"></i> {{ product.coupon_code }}</span>{% endif %}
+            </div>
+            {% endif %}
+
+            <div class="flex items-baseline gap-2 mb-3 price-float">
+                <span class="text-xl font-black text-gold">₪{{ "%.0f"|format(product.price or 0) }}</span>
+                {% if product.local_market_price %}
+                {% set savings = product.local_market_price - (product.price or 0) %}
+                {% if savings > 0 %}
+                <span class="text-[10px] text-green-400 font-bold bg-green-500/10 px-1.5 py-0.5 rounded-full">חיסכון ₪{{ "%.0f"|format(savings) }}</span>
+                {% else %}
+                <span class="text-xs text-gray-400 line-through">₪{{ "%.0f"|format(product.local_market_price) }}</span>
+                {% endif %}
+                {% endif %}
+            </div>
+
+            {% if product.shipping_days %}
+            <p class="text-[10px] text-gray-400 mb-2"><i class="fa-solid fa-truck-fast"></i> משלוח {{ product.shipping_days }} ימים</p>
+            {% endif %}
+
+            {% if product.ai_summary %}
+            <div class="bg-indigo-500/10 p-2 rounded-lg mb-3">
+                <p class="text-[11px] text-indigo-300 leading-tight italic">
+                    <i class="fa-solid fa-robot ml-1"></i> {{ product.ai_summary|truncate(70) }}
+                </p>
+            </div>
+            {% endif %}
+
+            {% if product.rating and product.rating >= 4.0 and product.review_count and product.review_count >= 100 %}
+            <p class="text-[10px] text-gray-400 mb-2">🔥 {{ product.recent_deal_clicks if product.recent_deal_clicks else product.review_count }} אנשים מתעניינים במוצר זה</p>
+            {% endif %}
+
+            {% if product.discount_percent and product.discount_percent > 15 %}
+            <p class="text-[10px] text-amber-600 font-bold mb-2"><i class="fa-solid fa-clock"></i> מחיר מבצע — לזמן מוגבל</p>
+            {% endif %}
+
+            <button onclick="event.stopPropagation(); window.location.href='/go/{{ product.id }}'" class="btn-primary w-full py-2 rounded-xl text-xs font-bold btn-primary-glow">
+                צפה בדיל <i class="fa-solid fa-arrow-left"></i>
+            </button>
+        </div>
+        {% endfor %}
+    </div>
+
+    {% if has_prev_page or has_next_page %}
+    <div class="flex justify-center gap-3 mt-10">
+        {% if has_prev_page %}
+        <a href="/?page={{ page - 1 }}&sort={{ active_sort }}{{ '&category=' + active_category if active_category else '' }}" class="glass-card px-5 py-2 rounded-lg text-sm">← הקודם</a>
+        {% endif %}
+        <span class="px-4 py-2 text-sm text-gray-400">עמוד {{ page }}</span>
+        {% if has_next_page %}
+        <a href="/?page={{ page + 1 }}&sort={{ active_sort }}{{ '&category=' + active_category if active_category else '' }}" class="glass-card px-5 py-2 rounded-lg text-sm">הבא →</a>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

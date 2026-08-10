@@ -1,0 +1,291 @@
+{% extends "layout.html" %}
+{% block title %}האזור האישי שלי{% endblock %}
+{% block content %}
+<div class="container mx-auto px-4 py-8 max-w-4xl space-y-6">
+    <div>
+        <h1 class="text-3xl font-bold">שלום, {{ user.email.split('@')[0] }}</h1>
+        <p class="text-gray-500 text-sm">דרגה: {{ user.rank }} · {{ user.points }} מטבעות</p>
+    </div>
+
+    <!-- Monthly Savings -->
+    <div class="glass-card p-5 border-r-4" style="border-color:var(--accent-success)">
+        <div class="flex items-center justify-between gap-4 flex-wrap">
+            <div class="flex-1 min-w-0">
+                <h2 class="font-bold text-sm mb-1"><i class="fa-solid fa-piggy-bank ml-1" style="color:var(--accent-success)"></i> חיסכון החודש</h2>
+                {% if monthly_order_count > 0 %}
+                <p class="text-xs text-gray-500 mb-3">חסכתם <span class="font-black" style="color:var(--accent-success)">₪{{ "%.0f"|format(monthly_saved) }}</span> החודש לעומת מחירי השוק — {{ monthly_order_count }} הזמנות</p>
+                {% else %}
+                <p class="text-xs text-gray-500 mb-3">עדיין אין הזמנות החודש — התחילו לחסוך עכשיו!</p>
+                {% endif %}
+                <div class="savings-progress-bar mb-2">
+                    <div class="savings-progress-fill" style="width: {{ monthly_savings_pct }}%">
+                        {% if monthly_savings_pct >= 15 %}
+                        <span class="savings-progress-label">{{ monthly_savings_pct }}%</span>
+                        {% endif %}
+                    </div>
+                    {% if monthly_savings_pct < 15 and monthly_savings_pct > 0 %}
+                    <span class="savings-progress-label-outside">{{ monthly_savings_pct }}%</span>
+                    {% endif %}
+                </div>
+                <div class="flex justify-between text-[10px] text-gray-400">
+                    <span>0%</span>
+                    <span>יעד: 25%</span>
+                </div>
+            </div>
+            <div class="shrink-0 text-center">
+                <div class="text-3xl font-black" style="color:var(--accent-success)">₪{{ "%.0f"|format(monthly_saved) }}</div>
+                <div class="text-[10px] text-gray-500">נחסך</div>
+            </div>
+        </div>
+    </div>
+
+    {% if is_site_admin %}
+    <div class="glass-card p-5 border-r-4 border-green-500 bg-green-50">
+        <div class="flex items-center justify-between gap-4 flex-wrap">
+            <div>
+                <h2 class="font-bold"><i class="fa-solid fa-shield-halved ml-1" style="color:var(--accent-success)"></i> חשבון מנהל המערכת</h2>
+                <p class="text-sm text-gray-500 mt-1">החשבון הזה מוגדר כמנהל האתר. הכניסה לפאנל הניהול דורשת סיסמת מנהל.</p>
+            </div>
+            <a href="/admin/login" class="btn-primary px-5 py-2.5 rounded-xl text-sm font-bold whitespace-nowrap"><i class="fa-solid fa-gear ml-1"></i> כניסה לפאנל הניהול</a>
+        </div>
+    </div>
+    {% endif %}
+
+    {% if not user.email_verified %}
+    <div class="glass-card p-4 border-r-4 border-yellow-500 flex flex-wrap items-center justify-between gap-3">
+        <p class="text-sm"><i class="fa-solid fa-triangle-exclamation ml-1" style="color:var(--accent-secondary)"></i> כתובת האימייל שלך עדיין לא אומתה.</p>
+        <button onclick="resendVerification()" id="resend-btn" class="btn-secondary px-4 py-2 rounded-lg text-sm font-bold">שלח שוב אימייל אימות</button>
+    </div>
+    {% endif %}
+
+    <!-- Gamification + Theme in one row -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div class="glass-card p-5">
+            <div class="flex justify-between items-center mb-2">
+                <h2 class="font-bold"><i class="fa-solid fa-coins ml-1" style="color:var(--accent-secondary)"></i> המסלול שלך</h2>
+                {% if next_rank and next_rank.next %}
+                <span class="text-xs text-gray-500">הדרגה הבאה: <span class="text-gold font-bold">{{ next_rank.next }}</span> ({{ next_rank.points_to_next }} מטבעות)</span>
+                {% endif %}
+            </div>
+            {% if next_rank %}
+            <div class="rank-progress-bar mb-3">
+                <div class="rank-progress-fill" style="width: {{ next_rank.progress }}%"></div>
+            </div>
+            {% endif %}
+            <div class="grid grid-cols-2 gap-2">
+                {% for action in coach_actions[:4] %}
+                <a href="{{ action.link }}" class="flex items-center gap-2 bg-gray-50 rounded-lg px-3 py-2 text-xs font-bold transition hover:bg-gray-100">
+                    <span class="text-gold text-sm">+{{ action.coins }}</span>
+                    <span class="text-gray-700 truncate">{{ action.label }}</span>
+                </a>
+                {% endfor %}
+            </div>
+        </div>
+        <div class="glass-card p-5 flex items-center justify-between gap-4">
+            <div>
+                <h2 class="font-bold"><i class="fa-solid fa-palette ml-1"></i> ערכת נושא</h2>
+                <p class="text-sm text-gray-500 mt-1">בהיר / כהה — ההעדפה נשמרת אצלכם.</p>
+            </div>
+            <button onclick="toggleTheme()" class="btn-secondary px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2">
+                <i id="theme-icon" class="fa-solid fa-moon"></i>
+                <span id="theme-label">עבור למצב כהה</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Tab navigation -->
+    <div class="glass-card">
+        <div class="flex overflow-x-auto border-b border-gray-200" role="tablist" id="pa-tabs">
+            <button class="pa-tab active" data-tab="orders" role="tab" aria-selected="true">
+                <i class="fa-solid fa-box ml-1"></i> הזמנות
+                {% if orders %}<span class="pa-tab-badge">{{ orders|length }}</span>{% endif %}
+            </button>
+            <button class="pa-tab" data-tab="favorites" role="tab" aria-selected="false">
+                <i class="fa-solid fa-heart ml-1"></i> מועדפים
+                {% if favorites %}<span class="pa-tab-badge">{{ favorites|length }}</span>{% endif %}
+            </button>
+            <button class="pa-tab" data-tab="alerts" role="tab" aria-selected="false">
+                <i class="fa-solid fa-bell ml-1"></i> התראות
+                {% if watchlist %}<span class="pa-tab-badge">{{ watchlist|length }}</span>{% endif %}
+            </button>
+            <button class="pa-tab" data-tab="coupons" role="tab" aria-selected="false">
+                <i class="fa-solid fa-ticket ml-1"></i> קופונים
+                {% if coupons %}<span class="pa-tab-badge">{{ coupons|length }}</span>{% endif %}
+            </button>
+            <button class="pa-tab" data-tab="history" role="tab" aria-selected="false">
+                <i class="fa-solid fa-clock-rotate-left ml-1"></i> היסטוריה
+            </button>
+            <button class="pa-tab" data-tab="push" role="tab" aria-selected="false">
+                <i class="fa-solid fa-bell-concierge ml-1"></i> התראות Push
+            </button>
+        </div>
+
+        <!-- Tab: Orders -->
+        <div class="pa-panel active" id="panel-orders">
+            {% if not orders %}
+            <div class="p-8 text-center text-gray-400">עדיין אין הזמנות רשומות.</div>
+            {% else %}
+            <div class="divide-y divide-gray-100 p-4">
+                {% for order in orders %}
+                <div class="py-3 flex justify-between items-start gap-4 flex-wrap" id="order-{{ order.id }}">
+                    <div>
+                        <p class="font-bold">הזמנה #{{ order.id }}</p>
+                        <p class="text-sm text-gray-500">₪{{ order.total_price }} · {{ order.created_at.strftime('%d/%m/%Y') if order.created_at else '' }}</p>
+                        {% if order.tracking_number %}
+                        <p class="text-xs text-gray-500 mt-1">מעקב: <span class="font-mono">{{ order.tracking_number }}</span></p>
+                        {% endif %}
+                    </div>
+                    <div class="text-left">
+                        <span class="text-xs px-3 py-1 rounded-full
+                            {% if order.shipment_status == 'delivered' %}bg-green-100 text-green-700
+                            {% elif order.shipment_status == 'exception' %}bg-red-100 text-red-700
+                            {% elif order.shipment_status in ['in_transit', 'out_for_delivery'] %}bg-blue-100 text-blue-700
+                            {% else %}bg-gray-100 text-gray-600{% endif %}">
+                            {{ order.shipment_last_event or "טרם עודכן" }}
+                        </span>
+                        {% if order.tracking_number %}
+                        <button onclick="refreshTracking({{ order.id }})" class="block mt-2 text-xs font-bold hover:underline" style="color:var(--accent-primary)"><i class="fa-solid fa-arrows-rotate ml-1"></i> רענן סטטוס</button>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Tab: Favorites -->
+        <div class="pa-panel" id="panel-favorites">
+            {% if not favorites %}
+            <div class="p-8 text-center text-gray-400">עדיין לא שמרתם מוצרים. לחצו על הלב בעמוד מוצר כדי לשמור.</div>
+            {% else %}
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 p-4">
+                {% for fav, product in favorites %}
+                <a href="/product/{{ product.id }}" class="product-card p-3 block group">
+                    <img src="{{ product.image_url }}" class="rounded-lg h-28 w-full object-cover mb-2 group-hover:brightness-95 transition">
+                    <p class="font-bold text-sm truncate">{{ product.name }}</p>
+                    <p class="text-gold font-bold text-sm">₪{{ "%.0f"|format(product.price or 0) }}</p>
+                </a>
+                {% endfor %}
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Tab: Price Alerts -->
+        <div class="pa-panel" id="panel-alerts">
+            {% if not watchlist %}
+            <div class="p-8 text-center text-gray-400">אין התראות מחיר פעילות. אפשר להגדיר מכל עמוד מוצר.</div>
+            {% else %}
+            <div class="divide-y divide-gray-100 p-4">
+                {% for alert, product in watchlist %}
+                <div class="py-3 flex justify-between items-center gap-4">
+                    <div>
+                        <p class="font-bold">{{ product.name }}</p>
+                        <p class="text-sm text-gray-500">יעד: ₪{{ alert.target_price }} | נוכחי: ₪{{ product.price }}</p>
+                    </div>
+                    <span class="text-xs px-2 py-1 rounded-full {{ 'bg-green-100 text-green-700' if alert.is_triggered else 'bg-yellow-100 text-yellow-700' }}">
+                        {{ "הופעל!" if alert.is_triggered else "ממתין" }}
+                    </span>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Tab: Coupons -->
+        <div class="pa-panel" id="panel-coupons">
+            {% if not coupons %}
+            <div class="p-8 text-center text-gray-400">אין כרגע קופונים. חוזרים לבדוק בקרוב!</div>
+            {% else %}
+            <div class="divide-y divide-gray-100 p-4">
+                {% for c in coupons %}
+                <a href="{{ c.url }}" class="py-3 flex items-center justify-between gap-3">
+                    <div class="flex items-center gap-3 min-w-0">
+                        <div class="shrink-0 w-12 h-12 rounded-lg flex items-center justify-center text-lg" style="background:var(--bg-hover)">
+                            <i class="fa-solid fa-ticket" style="color:var(--accent-secondary)"></i>
+                        </div>
+                        <div class="min-w-0">
+                            <p class="font-bold text-sm truncate">{{ c.name }}</p>
+                            <p class="text-xs text-gray-500">
+                                {{ c.source }}{% if c.discount %} · {{ "%.0f"|format(c.discount) }}% הנחה{% endif %}{% if c.valid_until %} · עד {{ c.valid_until.strftime('%d/%m/%Y') }}{% endif %}
+                            </p>
+                        </div>
+                    </div>
+                    <span class="text-gold font-black text-sm shrink-0 font-mono">{{ c.code }}</span>
+                </a>
+                {% endfor %}
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Tab: Click History -->
+        <div class="pa-panel" id="panel-history">
+            {% if not click_history %}
+            <div class="p-8 text-center text-gray-400">עדיין אין היסטוריית קליקים.</div>
+            {% else %}
+            <div class="divide-y divide-gray-100 p-4">
+                {% for click, product in click_history %}
+                <div class="py-3 flex justify-between items-center gap-4">
+                    <div>
+                        <p class="font-bold">{{ product.name }}</p>
+                        <p class="text-sm text-gray-500">מקור: {{ click.source }} | {{ click.created_at.strftime('%d/%m/%Y %H:%M') if click.created_at else '---' }}</p>
+                    </div>
+                    <a href="/go/{{ product.id }}?ref=personal_history" rel="sponsored noopener" class="btn-primary px-4 py-2 rounded-lg text-sm font-bold">חזור לדיל</a>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Tab: Push Notifications -->
+        <div class="pa-panel" id="panel-push">
+            <div class="p-6">
+                <h3 class="font-bold text-lg mb-3"><i class="fa-solid fa-bell-concierge ml-1" style="color:var(--accent-secondary)"></i> התראות בדפדפן (Push)</h3>
+                <p class="text-sm text-gray-500 mb-4">קבלו דילים חמים, התראות מחיר ומבצעים מיוחדים ישירות לדפדפן — גם כשהאתר לא פתוח.</p>
+                <div id="push-status-area" class="glass-card p-4 border border-gray-200 rounded-xl">
+                    <div class="flex items-center justify-between gap-4">
+                        <div>
+                            <p class="font-bold text-sm" id="push-status-text">בודק סטטוס...</p>
+                            <p class="text-xs text-gray-500 mt-1" id="push-status-detail"></p>
+                        </div>
+                    <button id="push-manage-btn" onclick="managePushSubscription()" class="btn-primary px-5 py-2 rounded-xl text-sm font-bold">
+                        <i class="fa-solid fa-bell-concierge ml-1"></i> בודק...
+                    </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+async function resendVerification() {
+    const btn = document.getElementById('resend-btn');
+    btn.textContent = 'שולח...';
+    try {
+        const res = await fetch('/api/resend-verification', { method: 'POST' });
+        const data = await res.json();
+        btn.textContent = data.message || 'נשלח';
+    } catch (e) { btn.textContent = 'שגיאה, נסה שוב'; }
+}
+
+async function refreshTracking(orderId) {
+    try {
+        const res = await fetch(`/api/orders/${orderId}/refresh-tracking`, { method: 'POST' });
+        const data = await res.json();
+        if (data.status === 'ok') location.reload();
+        else alert(data.message || 'לא ניתן לרענן');
+    } catch (e) { alert('שגיאה ברענון'); }
+}
+
+// Tab switching
+document.querySelectorAll('.pa-tab').forEach(btn => {
+    btn.addEventListener('click', () => {
+        document.querySelectorAll('.pa-tab').forEach(b => { b.classList.remove('active'); b.setAttribute('aria-selected', 'false'); });
+        document.querySelectorAll('.pa-panel').forEach(p => p.classList.remove('active'));
+        btn.classList.add('active');
+        btn.setAttribute('aria-selected', 'true');
+        document.getElementById('panel-' + btn.dataset.tab).classList.add('active');
+    });
+});
+</script>
+{% endblock %}

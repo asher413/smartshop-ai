@@ -1,0 +1,126 @@
+# =============================================================================
+# SmartShop AI — Production Docker Compose for Oracle Cloud Always Free
+#
+# 4 ARM Ampere cores, 24 GB RAM, 200 GB SSD — plenty for this whole stack.
+# All data lives in named volumes (persistent across container restarts).
+# =============================================================================
+
+services:
+  # --- PostgreSQL: persistent, fast, free-tier-friendly ---
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-smartshop}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-smartshop}
+      POSTGRES_DB: ${POSTGRES_DB:-smartshop}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-smartshop} -d ${POSTGRES_DB:-smartshop}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+    ports:
+      - "127.0.0.1:5432:5432"
+
+  # --- Redis: caching, rate-limit coordination, RQ ---
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+    ports:
+      - "127.0.0.1:6379:6379"
+
+  # --- Meilisearch: fast full-text search ---
+  meilisearch:
+    image: getmeili/meilisearch:v1.10
+    restart: unless-stopped
+    environment:
+      MEILI_MASTER_KEY: ${MEILI_MASTER_KEY:-smartshop-meili-master-key-change-me}
+      MEILI_ENV: production
+      MEILI_NO_ANALYTICS: "true"
+    volumes:
+      - meili_data:/meili_data
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--spider", "http://127.0.0.1:7700/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+    ports:
+      - "127.0.0.1:7700:7700"
+
+  # --- FastAPI web app (Gunicorn + Uvicorn) ---
+  web:
+    build: .
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-smartshop}:${POSTGRES_PASSWORD:-smartshop}@db:5432/${POSTGRES_DB:-smartshop}
+      - REDIS_URL=redis://redis:6379/0
+      - ENV=production
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      meilisearch:
+        condition: service_healthy
+    volumes:
+      - chroma_data:/srv/chroma_db
+      - ./scripts/seed_demo.py:/srv/scripts/seed_demo.py:ro
+    deploy:
+      resources:
+        limits:
+          memory: 4G
+    ports:
+      - "127.0.0.1:8000:8000"
+
+  # --- Background scheduler: auto-discovery, enrichment, price monitoring ---
+  scheduler:
+    build: .
+    restart: unless-stopped
+    command: python -m app.workers.scheduler
+    env_file:
+      - .env
+    environment:
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-smartshop}:${POSTGRES_PASSWORD:-smartshop}@db:5432/${POSTGRES_DB:-smartshop}
+      - REDIS_URL=redis://redis:6379/0
+      - ENV=production
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - chroma_data:/srv/chroma_db
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+
+volumes:
+  pgdata:
+  redisdata:
+  meili_data:
+  chroma_data:
