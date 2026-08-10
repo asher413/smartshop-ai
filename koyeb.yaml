@@ -1,0 +1,26 @@
+name: smartshop-ai
+service:
+  type: web
+  runtime:
+    dockerfile: Dockerfile.koyeb
+  regions:
+    - fra
+  instance_type: free
+  ports:
+    - port: 8000
+      protocol: http
+  env:
+    - key: DATABASE_URL
+      value: SET_YOUR_NEON_CONNECTION_STRING
+    - key: REDIS_URL
+      value: ""
+    - key: ENV
+      value: production
+    - key: SITE_URL
+      value: https://smartshop-ai.koyeb.app
+    - key: ADMIN_EMAIL
+      value: admin@smartshop.ai
+    - key: ADMIN_SECRET_KEY
+      value: SmartShop2026!
+    - key: SESSION_SECRET_KEY
+      value: koyeb-smartshop-secure-session-key-2026
