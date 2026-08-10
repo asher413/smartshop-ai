@@ -1,4 +1,33 @@
+---
+title: SmartShop AI
+emoji: 🛒
+colorFrom: blue
+colorTo: purple
+sdk: docker
+app_port: 7860
+pinned: false
+license: mit
+---
+
 # SmartShop — בורסת דילים חכמה נבחרים ע"י הצוות שלנו
+
+אתר אפילייט רב-ספקים עם מנוע איסוף מוצרים אוטומטי (AliExpress / Amazon / eBay / Temu),
+העשרת תוכן ב-AI (Gemini), צ'אטבוט קונסיירז', והשוואת מחירים חיה.
+
+[![Deploy to Hugging Face](https://huggingface.co/datasets/huggingface/badges/raw/main/deploy-to-spaces-lg.svg)](https://huggingface.co/new-space?template=asher413/smartshop-ai)
+
+## 🚀 פריסה מהירה בחינם — Hugging Face Spaces
+
+1. לחץ על הכפתור למעלה
+2. בחר **Docker** כ-Space SDK
+3. המתן 3-5 דקות לבנייה
+4. האתר זמין ב-`https://yourname-smartshop-ai.hf.space`
+
+**מה כלול בחינם:** 16 GB RAM, 2 vCPU, 50 GB SSD, HTTPS אוטומטי — **בלי כרטיס אשראי!**
+
+> ⚠️ ה-Space נכנס לשינה אחרי 48 שעות ללא בקשות. כדי לשמור אותו ער 24/7,
+> היכנס ל-[cron-job.org](https://cron-job.org) (חינם) וצור קריאת GET ל-`https://yourname-smartshop-ai.hf.space/healthz` כל 5 דקות.
+
 
 אתר אפילייט רב-ספקים עם מנוע איסוף מוצרים אוטומטי (AliExpress / Amazon / eBay / Temu),
 העשרת תוכן ב-שירות (Gemini), צ'אטבוט קונסיירז', והשוואת מחירים חיה.
