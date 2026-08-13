@@ -17,6 +17,9 @@ class Settings(BaseSettings):
     site_url: str = "https://yourdomain.com"
     # Google Analytics 4 Measurement ID (e.g. G-XXXXXXX). Empty = disabled.
     google_analytics_id: str = ""
+    # Dedicated token for scheduled cron jobs (/api/cron/discovery).
+    # Empty = endpoint disabled. Keep this OUT of the repo — set via env.
+    cron_secret: str = ""
 
     # AI
     google_api_key: str = ""

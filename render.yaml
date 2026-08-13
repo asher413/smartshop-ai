@@ -26,3 +26,5 @@ services:
         value: render-dealbursa-secure-key-2026
       - key: GOOGLE_API_KEY
         sync: false
+      - key: CRON_SECRET
+        sync: false

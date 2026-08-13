@@ -2207,6 +2207,21 @@ def trigger_discovery(
     return JSONResponse({"status": "started"})
 
 
+@app.post("/api/cron/discovery")
+@limiter.limit("10/minute")
+def cron_discovery(request: Request, background_tasks: BackgroundTasks):
+    """Scheduled product pull for external schedulers (GitHub Actions cron,
+    cron-job.org, ...). Auth is a dedicated X-Cron-Token so the admin
+    password never has to live in a repo workflow. Disabled when CRON_SECRET
+    is unset."""
+    token = request.headers.get("x-cron-token", "")
+    if not settings.cron_secret or not secrets.compare_digest(token, settings.cron_secret):
+        raise HTTPException(status_code=401, detail="Unauthorized")
+    from app.workers.auto_import_worker import run_full_cycle
+    background_tasks.add_task(run_full_cycle)
+    return JSONResponse({"status": "started"})
+
+
 @app.post("/api/newsletter")
 @limiter.limit("5/minute")
 def newsletter_signup(request: Request, email: str = Form(...), website: str = Form(""), db: Session = Depends(get_db)):

@@ -1,0 +1,24 @@
+name: product-discovery
+
+# Trigger the auto-import pipeline (/api/cron/discovery) every 6 hours so
+# the catalog keeps refreshing without a long-running background process on
+# Render's free tier. The endpoint returns immediately and the discovery
+# cycle keeps running in the worker — curl just wakes it up.
+#
+# Auth is a dedicated X-Cron-Token (see CRON_SECRET env var), NOT the admin
+# password, so nothing sensitive is committed here.
+on:
+  schedule:
+    - cron: "0 */6 * * *"
+  workflow_dispatch: {}
+
+jobs:
+  discover:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger product discovery
+        run: |
+          curl -sS -m 300 -X POST \
+            -H "X-Cron-Token: ${{ secrets.CRON_SECRET }}" \
+            https://dealbursa.onrender.com/api/cron/discovery \
+            -o /dev/null -w "discovery -> %{http_code}\n" || true
