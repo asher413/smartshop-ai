@@ -294,6 +294,13 @@ async def not_found_handler(request: Request, exc):
     return templates.TemplateResponse("404.html", {"request": request}, status_code=404)
 
 
+# DB init result exposed via /db-check. We never crash the app on a DB
+# hiccup at boot: retry a few times (managed Postgres like Neon cold-starts
+# on first connect), then keep serving so /healthz stays green and the real
+# error is visible on /db-check instead of a blank page.
+_db_init_error: str | None = None
+
+
 @app.on_event("startup")
 def _create_tables_if_missing():
     """create_all() only ever adds missing tables — never drops or alters
@@ -302,9 +309,23 @@ def _create_tables_if_missing():
     scripts/init_db.py by hand; the app becomes self-installing instead.
     Once you introduce real schema migrations (Alembic), replace this
     with an explicit migration step in your deploy pipeline."""
+    global _db_init_error
     from app.core.database import engine
     from app.core.models import Base
-    Base.metadata.create_all(bind=engine)
+    import time as _time
+    last_err = None
+    for attempt in range(6):
+        try:
+            Base.metadata.create_all(bind=engine)
+            _db_init_error = None
+            logger.info("Database ready (tables ensured).")
+            return
+        except Exception as e:  # noqa: BLE001 — surface via /db-check, keep serving
+            last_err = e
+            logger.warning("DB init attempt %d/6 failed: %s", attempt + 1, e)
+            _time.sleep(5)
+    _db_init_error = f"{type(last_err).__name__}: {last_err}"
+    logger.error("DB init failed after retries: %s", _db_init_error)
 
 fraud_service = FraudService()
 chatbot = StoreChatbot()
@@ -2348,6 +2369,14 @@ def healthz():
     crash the health probe and trigger a restart loop; the app's own
     error handling covers DB issues per-request."""
     return JSONResponse({"status": "ok"})
+
+
+@app.get("/db-check")
+def db_check():
+    """Diagnostic: DB init result — "ok" when connected, otherwise the
+    error string. Makes a managed-DB (Neon/Postgres) connection problem
+    visible without shell or log access on free tiers."""
+    return JSONResponse({"db": "ok" if _db_init_error is None else _db_init_error})
 
 
 @app.get("/sitemap.xml")

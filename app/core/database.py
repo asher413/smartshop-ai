@@ -20,7 +20,11 @@ engine = create_engine(
     pool_size=5 if not _is_sqlite else 5,
     max_overflow=7 if not _is_sqlite else 0,
     pool_recycle=1800,  # avoids "server closed the connection unexpectedly" on managed Postgres idle timeouts
-    connect_args={"check_same_thread": False} if _is_sqlite else {},
+    connect_args=(
+        {"check_same_thread": False}
+        if _is_sqlite
+        else {"connect_timeout": 10}
+    ),
 )
 
 if _is_sqlite:
