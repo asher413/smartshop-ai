@@ -71,7 +71,9 @@ services:
 
   # --- FastAPI web app (Gunicorn + Uvicorn) ---
   web:
-    build: .
+    build:
+      context: .
+      dockerfile: Dockerfile.oracle
     restart: unless-stopped
     env_file:
       - .env
@@ -98,7 +100,9 @@ services:
 
   # --- Background scheduler: auto-discovery, enrichment, price monitoring ---
   scheduler:
-    build: .
+    build:
+      context: .
+      dockerfile: Dockerfile.oracle
     restart: unless-stopped
     command: python -m app.workers.scheduler
     env_file:
