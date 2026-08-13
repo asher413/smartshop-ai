@@ -2403,7 +2403,15 @@ def sitemap_xml(db: Session = Depends(get_db)):
         return Response(content=cached, media_type="application/xml")
 
     products = db.query(Product).filter(Product.is_active == True, Product.is_verified == True).all()  # noqa: E712
-    urls = [f"{settings.site_url}/", f"{settings.site_url}/coupons", f"{settings.site_url}/about"]
+    urls = [
+        f"{settings.site_url}/",
+        f"{settings.site_url}/coupons",
+        f"{settings.site_url}/about",
+        f"{settings.site_url}/help",
+        f"{settings.site_url}/privacy",
+        f"{settings.site_url}/terms",
+        f"{settings.site_url}/feed",
+    ]
     urls += [f"{settings.site_url}/product/{p.id}" for p in products]
     body = "\n".join(f"  <url><loc>{u}</loc></url>" for u in urls)
     xml = f'<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n{body}\n</urlset>'
