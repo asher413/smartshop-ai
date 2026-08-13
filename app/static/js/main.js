@@ -1129,3 +1129,60 @@ function spinTheWheel() {
     }
     requestAnimationFrame(animate);
 }
+
+// ============ Analytics: GA4 + first-party event tracking ============
+// Every event fires to GA4 (when gtag is loaded) AND to /api/track-event so
+// engagement (searches, product clicks, product views) is measurable even
+// before GA4 is configured — no external vendor required.
+window.trackEvent = function (name, params) {
+    if (window.gtag && typeof window.gtag === 'function') {
+        try { window.gtag('event', name, params || {}); } catch (e) {}
+    }
+    try {
+        fetch('/api/track-event', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ event: name, params: params || {} }),
+            keepalive: true
+        }).catch(function () {});
+    } catch (e) {}
+};
+
+function _productIdFromUrl(href) {
+    try {
+        var m = href.match(/\/(?:go|product)\/(\d+)/);
+        return m ? m[1] : null;
+    } catch (e) { return null; }
+}
+
+// Product clicks (outbound affiliate) + product page views
+document.addEventListener('click', function (e) {
+    var link = e.target && e.target.closest ? e.target.closest('a[href]') : null;
+    if (!link) return;
+    var href = link.getAttribute('href') || '';
+    if (href.indexOf('/go/') !== -1) {
+        window.trackEvent('click_product', { product_id: _productIdFromUrl(href), url: href });
+    } else if (href.indexOf('/product/') !== -1) {
+        window.trackEvent('view_item', { product_id: _productIdFromUrl(href), url: href });
+    }
+}, true);
+
+// Search submissions (both desktop and mobile forms)
+document.addEventListener('submit', function (e) {
+    var form = e.target;
+    if (!form || !form.getAttribute) return;
+    var action = form.getAttribute('action') || '';
+    if (action.indexOf('/search') === -1) return;
+    var q = form.querySelector('input[name="q"]');
+    var term = q ? q.value.trim() : '';
+    if (term) window.trackEvent('search', { search_term: term });
+}, true);
+
+// Page view for first-party analytics
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', function () {
+        window.trackEvent('page_view', { path: window.location.pathname });
+    });
+} else {
+    window.trackEvent('page_view', { path: window.location.pathname });
+}

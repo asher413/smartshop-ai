@@ -15,6 +15,8 @@ class Settings(BaseSettings):
     database_url: str = "sqlite:///./dropship.db"
     redis_url: str = "redis://localhost:6379/0"
     site_url: str = "https://yourdomain.com"
+    # Google Analytics 4 Measurement ID (e.g. G-XXXXXXX). Empty = disabled.
+    google_analytics_id: str = ""
 
     # AI
     google_api_key: str = ""

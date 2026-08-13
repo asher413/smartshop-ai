@@ -33,6 +33,7 @@ EDITABLE = {
     "gemini_model": "GEMINI_MODEL",
     # Site / admin
     "site_url": "SITE_URL",
+    "google_analytics_id": "GOOGLE_ANALYTICS_ID",
     "admin_email": "ADMIN_EMAIL",
     "admin_secret_key": "ADMIN_SECRET_KEY",
     "session_secret_key": "SESSION_SECRET_KEY",

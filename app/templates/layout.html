@@ -46,6 +46,16 @@
     }
     </script>
     {% endif %}
+    {% set _ga = ga_id() %}
+    {% if _ga %}
+    <script async src="https://www.googletagmanager.com/gtag/js?id={{ _ga }}"></script>
+    <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', '{{ _ga }}', { 'anonymize_ip': true });
+    </script>
+    {% endif %}
     {% block jsonld %}{% endblock %}
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">

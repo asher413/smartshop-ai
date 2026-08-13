@@ -30,7 +30,7 @@ from app.core.models import (
     Product, User, Order, ProductView, PriceAlert, AffiliateClick,
     NewsletterSubscriber, ProductFavorite, DailyPrice,
     PointTransaction, Notification, AdPlacement, ProductReview, Coupon,
-    PushSubscription,
+    PushSubscription, AnalyticsEvent,
 )
 from app.services.fraud_service import FraudService
 from app.services.tracking_service import choose_best_target, log_click
@@ -110,6 +110,9 @@ def _static_version() -> str:
     return str(int(newest))
 
 templates.env.globals["static_version"] = _static_version()
+# GA4 id is read lazily so an admin can set GOOGLE_ANALYTICS_ID at runtime
+# (via the admin settings panel) without restarting the process.
+templates.env.globals["ga_id"] = lambda: settings.google_analytics_id
 
 # Category metadata for the AliExpress-style mega-menu — available on EVERY
 # page (layout renders it) without every route having to pass it.
@@ -1572,6 +1575,31 @@ def chat(request: Request, query: str = Form(...), mode: str = Form("standard"),
 def track_view(product_id: int, request: Request, db: Session = Depends(get_db)):
     db.add(ProductView(session_id=request.cookies.get("session_id", "guest"), product_id=product_id))
     db.commit()
+    return JSONResponse({"status": "ok"})
+
+
+@app.post("/api/track-event")
+@limiter.limit("120/minute")
+async def track_event(request: Request, db: Session = Depends(get_db)):
+    """First-party analytics: records a client event (search, click_product,
+    view_item, page_view) so engagement is measurable without any external
+    cookie/JS vendor. Mirrors the same events sent to GA4 when configured."""
+    try:
+        data = await request.json()
+    except Exception:
+        data = {}
+    name = str(data.get("event", "unknown"))[:100]
+    params = data.get("params") if isinstance(data.get("params"), dict) else {}
+    # strip anything that isn't JSON-serializable to keep the column safe
+    try:
+        db.add(AnalyticsEvent(
+            event_name=name,
+            payload=params,
+            session_id=request.cookies.get("session_id", "guest"),
+        ))
+        db.commit()
+    except Exception:
+        db.rollback()
     return JSONResponse({"status": "ok"})
 
 

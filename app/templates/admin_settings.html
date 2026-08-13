@@ -360,6 +360,12 @@
                     <input type="email" name="ADMIN_EMAIL" value="{{ values.get('ADMIN_EMAIL') }}" placeholder="admin@dealbursa.ai"
                            class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-500">
                 </div>
+                <div>
+                    <label class="block text-xs text-gray-400 mb-1">GOOGLE_ANALYTICS_ID — מזהה GA4 (מתחיל ב-G-)</label>
+                    <input type="text" name="GOOGLE_ANALYTICS_ID" value="{{ values.get('GOOGLE_ANALYTICS_ID') }}" placeholder="G-XXXXXXXXXX" dir="ltr"
+                           class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-500">
+                    <p class="text-[11px] text-gray-500 mt-1">הדביקו את מזהה המדידה מ-Google Analytics 4. מעקב האירועים (חיפושים, קליקים על מוצרים) כבר מובנה באתר ופועל אוטומטית ברגע שממלאים.</p>
+                </div>
                 <div class="md:col-span-2">
                     <label class="block text-xs text-gray-400 mb-1">👥 TEAM_EMAILS — מיילים של אנשי הצוות (מופרדים בפסיק)</label>
                     <input type="text" name="TEAM_EMAILS" value="{{ values.get('TEAM_EMAILS') }}" placeholder="support@dealbursa.ai, ofer@dealbursa.ai"

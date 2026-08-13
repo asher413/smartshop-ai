@@ -171,6 +171,17 @@ class ProductView(Base):
     timestamp = Column(DateTime, default=datetime.datetime.utcnow)
 
 
+class AnalyticsEvent(Base):
+    """First-party engagement events (page_view, search, click_product,
+    view_item) so real traffic is measurable even before GA4 is wired."""
+    __tablename__ = "analytics_events"
+    id = Column(Integer, primary_key=True, index=True)
+    event_name = Column(String, index=True)
+    payload = Column(JSON)
+    session_id = Column(String, index=True)
+    created_at = Column(DateTime, default=datetime.datetime.utcnow, index=True)
+
+
 class PriceAudit(Base):
     __tablename__ = "price_audits"
     id = Column(Integer, primary_key=True, index=True)
