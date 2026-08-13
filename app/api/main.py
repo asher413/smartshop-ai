@@ -301,20 +301,20 @@ async def not_found_handler(request: Request, exc):
 _db_init_error: str | None = None
 
 
-@app.on_event("startup")
-def _create_tables_if_missing():
-    """create_all() only ever adds missing tables — never drops or alters
-    existing ones — so it's safe to run on every boot. This matters on
-    free hosting tiers where you typically don't get a shell to run
-    scripts/init_db.py by hand; the app becomes self-installing instead.
-    Once you introduce real schema migrations (Alembic), replace this
-    with an explicit migration step in your deploy pipeline."""
+def _init_db():
+    """Ensure tables exist, retrying in the background.
+
+    Runs off the startup path so /healthz responds immediately (managed
+    Postgres like Neon can cold-start for 10+ seconds on first connect, and
+    a blocking create_all here would make Render's health probe time out and
+    kill the deploy). create_all only ever ADDS missing tables — never drops
+    or alters existing ones — so it's safe on every boot."""
     global _db_init_error
     from app.core.database import engine
     from app.core.models import Base
     import time as _time
     last_err = None
-    for attempt in range(6):
+    for attempt in range(12):
         try:
             Base.metadata.create_all(bind=engine)
             _db_init_error = None
@@ -322,10 +322,16 @@ def _create_tables_if_missing():
             return
         except Exception as e:  # noqa: BLE001 — surface via /db-check, keep serving
             last_err = e
-            logger.warning("DB init attempt %d/6 failed: %s", attempt + 1, e)
-            _time.sleep(5)
+            logger.warning("DB init attempt %d/12 failed: %s", attempt + 1, e)
+            _time.sleep(10)
     _db_init_error = f"{type(last_err).__name__}: {last_err}"
     logger.error("DB init failed after retries: %s", _db_init_error)
+
+
+@app.on_event("startup")
+def _start_db_init():
+    import threading as _threading
+    _threading.Thread(target=_init_db, daemon=True).start()
 
 fraud_service = FraudService()
 chatbot = StoreChatbot()
