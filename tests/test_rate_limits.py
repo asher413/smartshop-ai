@@ -79,6 +79,8 @@ PUBLIC_LIMITED_ROUTES = [
     ("POST", "/api/push/subscribe", 30, lambda c, i: c.post("/api/push/subscribe", json={"endpoint": "https://example.com", "keys": {"p256dh": "a", "auth": "b"}})),
     ("POST", "/api/push/unsubscribe", 30, lambda c, i: c.post("/api/push/unsubscribe", json={"endpoint": "https://example.com"})),
     ("POST", "/api/spin-reward", 5, lambda c, i: c.post("/api/spin-reward")),
+    ("POST", "/api/track-event", 120, lambda c, i: c.post("/api/track-event", json={"event": "page_view"})),
+    ("POST", "/api/cron/discovery", 10, lambda c, i: c.post("/api/cron/discovery")),
 ]
 
 # Admin routes whose handler runs only after the CSRF gate — so the requests

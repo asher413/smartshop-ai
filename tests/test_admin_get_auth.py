@@ -53,6 +53,7 @@ ADMIN_GET_ROUTES = [
     "/admin/messages",            # page route  -> 303
     "/admin/reports",            # page route  -> 303
     "/admin/reports/export-top10", # CSV export    -> 401
+    "/admin/analytics",          # page route  -> 303
 ]
 
 
@@ -136,7 +137,8 @@ def test_every_admin_get_route_is_protected():
                 if fn is not None:
                     dep_names.append(getattr(fn, "__name__", "") or getattr(fn, "__qualname__", ""))
         protected_now = "require_admin" in dep_names or fn_name in (
-            "admin_dashboard", "admin_suppliers_page", "admin_messages_page", "admin_reports",  # inline _is_admin pages
+            "admin_dashboard", "admin_suppliers_page", "admin_messages_page", "admin_reports",
+            "admin_analytics",  # inline _is_admin pages
         )
         (protected if protected_now else unprotected).append(path)
     assert not unprotected, f"Admin GET routes missing auth gate: {unprotected}"

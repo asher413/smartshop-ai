@@ -13,7 +13,12 @@ class Settings(BaseSettings):
 
     env: str = "development"
     database_url: str = "sqlite:///./dropship.db"
-    redis_url: str = "redis://localhost:6379/0"
+    # Empty = Redis disabled. The rate limiter and cache then fall back to
+    # in-process memory (single-process only). Docker/production set this
+    # explicitly (see .env.example / docker-compose.yml); leaving the default
+    # empty means a fresh checkout or CI without Redis degrades gracefully
+    # instead of hard-failing on limiter.reset().
+    redis_url: str = ""
     site_url: str = "https://yourdomain.com"
     # Google Analytics 4 Measurement ID (e.g. G-XXXXXXX). Empty = disabled.
     google_analytics_id: str = ""

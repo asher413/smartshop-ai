@@ -47,7 +47,11 @@ jobs:
 
       - name: Run tests (pytest)
         run: |
-          python -m pytest -q --junitxml=test-report.xml -o junit_family=legacy -p no:cacheprovider
+          # -m "not slow" skips the load tests (tests/test_load.py), which
+          # need a live uvicorn server on 127.0.0.1:8000 that CI doesn't
+          # start. They're meant to run against a deployed instance, not in
+          # the unit-test job.
+          python -m pytest -q -m "not slow" --junitxml=test-report.xml -o junit_family=legacy -p no:cacheprovider
 
       - name: Upload test report (on success and failure)
         if: always()
