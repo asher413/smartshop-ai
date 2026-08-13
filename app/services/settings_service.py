@@ -180,7 +180,49 @@ def save(payload: dict) -> list[str]:
                 out.append(f"{k}={values[k]}\n")
         with open(_env_path(), "w", encoding="utf-8") as f:
             f.writelines(out)
+
+    # Persist to the database too: the .env write is ephemeral on hosts with
+    # a non-persistent filesystem (Render), so the DB copy is what makes
+    # admin-panel changes (password, supplier keys) survive restarts.
+    if values:
+        try:
+            from app.core.database import SessionLocal
+            from app.core.models import AppSetting
+            db = SessionLocal()
+            try:
+                for env, val in values.items():
+                    row = db.query(AppSetting).filter(AppSetting.key == env).first()
+                    if row:
+                        row.value = val
+                    else:
+                        db.add(AppSetting(key=env, value=val))
+                db.commit()
+            finally:
+                db.close()
+        except Exception:
+            logger.warning("Failed to persist settings to DB", exc_info=True)
     return changed
+
+
+def load_overrides():
+    """Re-apply DB-persisted settings onto the live Settings object.
+
+    Called once at boot (after tables are ensured) so values saved from the
+    admin panel win over the environment defaults. Never raises."""
+    try:
+        from app.core.database import SessionLocal
+        from app.core.models import AppSetting
+        db = SessionLocal()
+        try:
+            rows = db.query(AppSetting).all()
+            for row in rows:
+                if row.key in EDITABLE.values():
+                    attr = next(a for a, e in EDITABLE.items() if e == row.key)
+                    setattr(settings, attr, _coerce(attr, row.value))
+        finally:
+            db.close()
+    except Exception:
+        logger.warning("Could not load persisted settings overrides", exc_info=True)
 
 
 # --- Live connection tests -------------------------------------------------

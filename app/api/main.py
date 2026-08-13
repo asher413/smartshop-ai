@@ -317,6 +317,8 @@ def _init_db():
     for attempt in range(12):
         try:
             Base.metadata.create_all(bind=engine)
+            from app.services import settings_service
+            settings_service.load_overrides()
             _db_init_error = None
             logger.info("Database ready (tables ensured).")
             return
@@ -413,6 +415,12 @@ templates.env.filters['imgsrcset'] = _imgsrcset_filter
 # work against /admin/run-discovery etc.
 
 
+def _admin_email_list() -> list[str]:
+    """Admin emails as a comma-separated list from ADMIN_EMAIL (supports
+    more than one admin inbox)."""
+    return [e.strip().lower() for e in (settings.admin_email or "").split(",") if e.strip()]
+
+
 def _is_admin(request: Request) -> bool:
     """Shared check: session flag OR valid HTTP Basic admin credentials.
     The Basic username may be the legacy literal "admin" (used by cron jobs)
@@ -435,7 +443,7 @@ def _is_admin(request: Request) -> bool:
         try:
             decoded = base64.b64decode(auth[6:]).decode()
             user, _, pw = decoded.partition(":")
-            user_ok = user == "admin" or (settings.admin_email and user.lower() == settings.admin_email.lower())
+            user_ok = user == "admin" or user.lower() in _admin_email_list()
             if user_ok and secrets.compare_digest(pw, settings.admin_secret_key):
                 return True
         except Exception:
@@ -522,8 +530,8 @@ def admin_login_submit(request: Request, email: str = Form(""), password: str = 
     The legacy username "admin" also works, so users who remember the old
     password-only flow aren't blocked by a forgotten email address."""
     given = email.strip().lower()
-    expected = (settings.admin_email or "").strip().lower()
-    email_ok = (not expected) or given in (expected, "admin")
+    emails = _admin_email_list()
+    email_ok = (not emails) or given == "admin" or given in emails
     if email_ok and secrets.compare_digest(password, settings.admin_secret_key):
         request.session["is_admin"] = True
         request.session["admin_email"] = given  # used by rate-limit key function for per-admin isolation

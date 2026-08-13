@@ -18,6 +18,21 @@ from sqlalchemy.orm import declarative_base
 Base = declarative_base()
 
 
+class AppSetting(Base):
+    """Persistent key/value overrides written from the admin settings page.
+
+    On hosts with an ephemeral filesystem (Render), the .env file doesn't
+    survive a restart — so settings saved from the admin panel (admin
+    password, supplier API keys, ...) are mirrored here and re-applied on
+    boot. This is what makes changing the admin password from the UI stick.
+    """
+    __tablename__ = "app_settings"
+    id = Column(Integer, primary_key=True, index=True)
+    key = Column(String(64), unique=True, index=True, nullable=False)
+    value = Column(Text, nullable=False, default="")
+    updated_at = Column(DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)
+
+
 class Product(Base):
     __tablename__ = "products"
     __table_args__ = (UniqueConstraint("source_adapter", "external_id", name="uq_source_external"),)
