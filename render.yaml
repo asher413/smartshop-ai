@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: smartshop
+    name: dealbursa
     runtime: python
     plan: free
     region: frankfurt
@@ -17,12 +17,12 @@ services:
       - key: PYTHON_VERSION
         value: 3.11.11
       - key: SITE_URL
-        value: https://smartshop-8jtv.onrender.com
+        value: https://dealbursa.onrender.com
       - key: ADMIN_EMAIL
         value: a41337sh@gmail.com,a4133753sh@gmail.com
       - key: ADMIN_SECRET_KEY
         value: SmartShop2026!
       - key: SESSION_SECRET_KEY
-        value: render-smartshop-secure-key-2026
+        value: render-dealbursa-secure-key-2026
       - key: GOOGLE_API_KEY
         sync: false

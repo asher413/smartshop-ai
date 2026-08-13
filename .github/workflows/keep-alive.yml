@@ -16,4 +16,4 @@ jobs:
       - name: Wake /healthz
         run: |
           curl -sS -m 90 -o /dev/null -w "healthz -> %{http_code}\n" \
-            https://smartshop-8jtv.onrender.com/healthz || true
+            https://dealbursa.onrender.com/healthz || true
