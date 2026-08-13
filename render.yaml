@@ -19,7 +19,7 @@ services:
       - key: SITE_URL
         value: https://smartshop-8jtv.onrender.com
       - key: ADMIN_EMAIL
-        value: admin@smartshop.ai
+        value: a41337sh@gmail.com,a4133753sh@gmail.com
       - key: ADMIN_SECRET_KEY
         value: SmartShop2026!
       - key: SESSION_SECRET_KEY
