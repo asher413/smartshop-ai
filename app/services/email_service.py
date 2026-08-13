@@ -44,7 +44,7 @@ def send_email(to_email: str, subject: str, html_body: str) -> bool:
 def send_verification_email(to_email: str, verify_url: str):
     html = f"""
     <div dir="rtl" style="font-family: Arial, sans-serif; max-width: 480px; margin: 0 auto;">
-        <h2 style="color:#4338ca;">אימות כתובת אימייל — SmartShop</h2>
+        <h2 style="color:#4338ca;">אימות כתובת אימייל — DealBursa</h2>
         <p>תודה שנרשמת! לחצו על הכפתור למטה כדי לאמת את כתובת האימייל שלכם:</p>
         <a href="{verify_url}" style="display:inline-block; background:#6366f1; color:white;
            padding:12px 28px; border-radius:10px; text-decoration:none; font-weight:bold;">
@@ -55,4 +55,4 @@ def send_verification_email(to_email: str, verify_url: str):
         </p>
     </div>
     """
-    return send_email(to_email, "אימות כתובת אימייל — SmartShop", html)
+    return send_email(to_email, "אימות כתובת אימייל — DealBursa", html)

@@ -1,5 +1,5 @@
 {% extends "layout.html" %}
-{% block title %}הגדרות | סמארטשופ{% endblock %}
+{% block title %}הגדרות | דילבורסה{% endblock %}
 {% block content %}
 <div class="container mx-auto px-4 py-10 max-w-4xl space-y-6">
     <div class="flex justify-between items-center flex-wrap gap-3">
@@ -357,12 +357,12 @@
                 </div>
                 <div>
                     <label class="block text-xs text-gray-400 mb-1">ADMIN_EMAIL — מייל הכניסה לניהול</label>
-                    <input type="email" name="ADMIN_EMAIL" value="{{ values.get('ADMIN_EMAIL') }}" placeholder="admin@smartshop.ai"
+                    <input type="email" name="ADMIN_EMAIL" value="{{ values.get('ADMIN_EMAIL') }}" placeholder="admin@dealbursa.ai"
                            class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-500">
                 </div>
                 <div class="md:col-span-2">
                     <label class="block text-xs text-gray-400 mb-1">👥 TEAM_EMAILS — מיילים של אנשי הצוות (מופרדים בפסיק)</label>
-                    <input type="text" name="TEAM_EMAILS" value="{{ values.get('TEAM_EMAILS') }}" placeholder="support@smartshop.ai, ofer@smartshop.ai"
+                    <input type="text" name="TEAM_EMAILS" value="{{ values.get('TEAM_EMAILS') }}" placeholder="support@dealbursa.ai, ofer@dealbursa.ai"
                            class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-500" dir="ltr">
                     <p class="text-[11px] text-gray-500 mt-1">פניות ממרכז העזרה (טופס "כתבו לנו") נשמרות באתר ונשלחות במייל לכל הכתובות פה — וגם ל-ADMIN_EMAIL. אפשר לצפות בהן בלוח הבקרה → פניות.</p>
                 </div>

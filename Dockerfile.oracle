@@ -1,5 +1,5 @@
 # =============================================================================
-# SmartShop AI — Production Dockerfile for Oracle Cloud Always Free (ARM Ampere)
+# DealBursa — Production Dockerfile for Oracle Cloud Always Free (ARM Ampere)
 #
 # Multi-stage build: builder stage installs deps, final stage is minimal.
 # Oracle's free tier gives 4 ARM cores + 24 GB RAM — this image uses all of it.
@@ -70,7 +70,7 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=15s --retries=3 \
 # Override WEB_CONCURRENCY per your actual load; set to 1 for SQLite.
 CMD ["sh", "-c", "\
     WORKERS=${WEB_CONCURRENCY:-4}; \
-    echo 'Starting SmartShop with $WORKERS workers...'; \
+    echo 'Starting DealBursa with $WORKERS workers...'; \
     exec gunicorn app.api.main:app \
         -k uvicorn.workers.UvicornWorker \
         -w $WORKERS \

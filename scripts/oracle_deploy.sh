@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 # =============================================================================
-# SmartShop AI — Oracle Cloud Always Free Tier Deployment Script
+# DealBursa — Oracle Cloud Always Free Tier Deployment Script
 # =============================================================================
 # This script turns a fresh Ubuntu 22.04 ARM (Ampere) VM into a production
-# SmartShop server with Docker, Nginx, SSL, and auto-renewal — in one command.
+# DealBursa server with Docker, Nginx, SSL, and auto-renewal — in one command.
 #
 # WHAT YOU GET:
 #   - Docker + docker-compose running all services (web, scheduler, DB, Redis, Meilisearch)
@@ -66,7 +66,7 @@ START_TIME=$(date +%s)
 
 echo ""
 echo "============================================================"
-echo "  SmartShop AI - Oracle Cloud Deployment"
+echo "  DealBursa - Oracle Cloud Deployment"
 echo "  Domain: $DOMAIN"
 echo "  Email:  $EMAIL"
 echo "============================================================"
@@ -119,7 +119,7 @@ log "Firewall active: only SSH, HTTP, HTTPS open."
 # ============================================================================
 # STEP 4: Deploy the app
 # ============================================================================
-log "STEP 4/8: Deploying SmartShop..."
+log "STEP 4/8: Deploying DealBursa..."
 
 APP_DIR="/opt/smartshop"
 PROJECT_SRC="$(cd "$(dirname "$0")/.." && pwd)"
@@ -251,7 +251,7 @@ ELAPSED=$(($(date +%s) - START_TIME))
 echo ""
 echo "============================================================"
 echo ""
-echo "  SmartShop AI is LIVE!"
+echo "  DealBursa is LIVE!"
 echo ""
 echo "  Site:   https://$DOMAIN"
 echo "  Admin:  https://$DOMAIN/admin"

@@ -36,7 +36,7 @@ class EmailCampaignAgent:
             .limit(limit)
             .all()
         )
-        subject = "🔥 הדילים החמים של השבוע — SmartShop"
+        subject = "🔥 הדילים החמים של השבוע — DealBursa"
         if settings.google_api_key:
             try:
                 variants = self.marketing.generate_ab_subject_lines(
@@ -93,7 +93,7 @@ class EmailCampaignAgent:
           <div style="max-width:540px;margin:0 auto;background:#ffffff;border-radius:20px;overflow:hidden;border:1px solid #e2e8f0;">
             <div style="background:linear-gradient(135deg,#1e1b4b,#4338ca);padding:24px;text-align:center;">
               <div style="font-size:24px;">🛍️</div>
-              <div style="color:#ffffff;font-size:20px;font-weight:900;">SmartShop <span style="color:#fbbf24;">AI</span></div>
+              <div style="color:#ffffff;font-size:20px;font-weight:900;">DealBursa <span style="color:#fbbf24;">AI</span></div>
               <div style="color:#c7d2fe;font-size:12px;margin-top:4px;">הדילים החמים — נבחרים אוטומטית ע"י מערכת מתקדמת</div>
             </div>
             <div style="padding:24px;">

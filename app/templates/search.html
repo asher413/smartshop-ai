@@ -1,5 +1,5 @@
 {% extends "layout.html" %}
-{% block title %}{% if is_category_page %}{{ category_name }}{% elif query %}תוצאות חיפוש: {{ query }}{% else %}חיפוש מוצרים{% endif %} | סמארטשופ{% endblock %}
+{% block title %}{% if is_category_page %}{{ category_name }}{% elif query %}תוצאות חיפוש: {{ query }}{% else %}חיפוש מוצרים{% endif %} | דילבורסה{% endblock %}
 {% block content %}
 <div class="container mx-auto px-4 sm:px-6 lg:px-8 py-6">
 
@@ -227,7 +227,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const resultsGrid = document.getElementById('results-grid');
     const btnGrid = document.getElementById('view-grid');
     const btnList = document.getElementById('view-list');
-    const VIEW_KEY = 'smartshop_view_mode';
+    const VIEW_KEY = 'dealbursa_view_mode';
 
     function setView(mode) {
         if (!resultsGrid) return;

@@ -22,7 +22,7 @@ from app.core.models import Product
 logger = logging.getLogger(__name__)
 
 MEILI_URL = os.getenv("MEILI_URL", "http://127.0.0.1:7700")
-MEILI_MASTER_KEY = os.getenv("MEILI_MASTER_KEY", "smartshop-meili-master-key-change-me")
+MEILI_MASTER_KEY = os.getenv("MEILI_MASTER_KEY", "dealbursa-meili-master-key-change-me")
 INDEX_NAME = "products"
 
 # Fields indexed for full-text search (typo-tolerant)

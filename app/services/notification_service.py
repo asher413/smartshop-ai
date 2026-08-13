@@ -125,7 +125,7 @@ def send_push_test(db_session=None) -> tuple[int, str]:
                 return 0, "No subscribers yet — nothing to send"
             _push_to_all(
                 "בדיקת התראות Push",
-                "ההתראה הגיעה בהצלחה מסמארטשופ! עכשיו אתם מחוברים לקבלת דילים חמים ישירות לדפדפן.",
+                "ההתראה הגיעה בהצלחה מדילבורסה! עכשיו אתם מחוברים לקבלת דילים חמים ישירות לדפדפן.",
                 url="/",
             )
             return count, f"Test push sent to {count} subscriber(s)"

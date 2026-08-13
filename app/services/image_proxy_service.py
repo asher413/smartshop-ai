@@ -166,7 +166,7 @@ def get_or_convert(source_url: str, accept_header: str = "", target_width: int =
     # Fetch original
     try:
         resp = requests.get(source_url, timeout=FETCH_TIMEOUT, stream=True,
-                           headers={"User-Agent": "SmartShop-ImageProxy/1.0"})
+                           headers={"User-Agent": "DealBursa-ImageProxy/1.0"})
         resp.raise_for_status()
     except requests.RequestException as e:
         logger.warning("Image proxy fetch failed for %s: %s", source_url[:120], e)
@@ -283,7 +283,7 @@ def warm_cache(image_urls: list[str], max_workers: int = 4) -> dict:
         # Fetch the source once, convert twice (to avoid double network cost).
         try:
             resp = requests.get(url, timeout=FETCH_TIMEOUT, stream=True,
-                               headers={"User-Agent": "SmartShop-ImageProxy/2.0"})
+                               headers={"User-Agent": "DealBursa-ImageProxy/2.0"})
             resp.raise_for_status()
         except requests.RequestException as e:
             logger.warning("Warm-cache fetch failed for %s: %s", url[:120], e)

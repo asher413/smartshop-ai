@@ -1,5 +1,5 @@
 ---
-title: SmartShop AI
+title: DealBursa
 emoji: 🛒
 colorFrom: blue
 colorTo: purple
@@ -9,7 +9,7 @@ pinned: false
 license: mit
 ---
 
-# SmartShop — בורסת דילים חכמה נבחרים ע"י הצוות שלנו
+# DealBursa — בורסת דילים חכמה נבחרים ע"י הצוות שלנו
 
 אתר אפילייט רב-ספקים עם מנוע איסוף מוצרים אוטומטי (AliExpress / Amazon / eBay / Temu),
 העשרת תוכן ב-AI (Gemini), צ'אטבוט קונסיירז', והשוואת מחירים חיה.
@@ -150,7 +150,7 @@ Host/Port/Login/Password ל-`SMTP_HOST/PORT/USER/PASSWORD`. חלופה: Gmail
    SMTP_USER=<האימייל של חשבון Brevo>
    SMTP_PASSWORD=<הסיסמה מ-Brevo>
    SMTP_FROM_EMAIL=no-reply@<הדומיין שלכם>
-   SMTP_FROM_NAME=SmartShop AI
+   SMTP_FROM_NAME=DealBursa
    ```
 5. **חובה לאמת את הדומיין ב-Brevo** (הגדרות → Senders → הוספת domain
    + הוספת רשומת DNS אצל ספק הדומיין שלכם) — אחרת מיילים יגיעו ל-Spam.
@@ -463,7 +463,7 @@ python scripts/init_db.py   # פעם ראשונה בלבד, ליצירת הטב�
    ```bash
    git init
    git add .
-   git commit -m "SmartShop AI - initial commit"
+   git commit -m "DealBursa - initial commit"
    git branch -M main
    git remote add origin https://github.com/<your-username>/<repo-name>.git
    git push -u origin main

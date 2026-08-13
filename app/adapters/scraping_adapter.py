@@ -303,7 +303,7 @@ class ScrapingAdapter(BaseSupplierAdapter):
         # No official tracking available without an API — appends a plain
         # ref param so click_log/tracking_service can still attribute clicks.
         separator = "&" if "?" in raw_url else "?"
-        return f"{raw_url}{separator}ref=smartshopai"
+        return f"{raw_url}{separator}ref=dealbursa"
 
     def __del__(self):
         # Shared browser — individual adapters must NOT close it out from

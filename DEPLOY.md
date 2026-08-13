@@ -1,4 +1,4 @@
-# 🚀 מדריך העלאה — סמארטשופ (SmartShop)
+# 🚀 מדריך העלאה — דילבורסה (DealBursa)
 
 ## איפה אפשר להעלות בחינם / הכי זול?
 
@@ -19,7 +19,7 @@
 ```bash
 git init
 git add .
-git commit -m "SmartShop ready for deploy"
+git commit -m "DealBursa ready for deploy"
 git remote add origin https://github.com/המשתמש-שלך/smartshop-ai.git
 git push -u origin main
 ```

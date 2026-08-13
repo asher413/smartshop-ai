@@ -43,7 +43,7 @@ class InstagramAgent:
             f"💸 {price_line}\n"
             f"👇 קישור בסטורי שלנו / בקישור שבתיאור הפרופיל\n"
             f"🔗 קישור שותפים — ייתכן שנקבל עמלה, ללא עלות נוספת עבורך\n\n"
-            f"#deals #shopping #smartshop #דילים #קניות #דילחם #salefinds"
+            f"#deals #shopping #dealbursa #דילים #קניות #דילחם #salefinds"
         )
 
     def _api_error(self, resp: requests.Response) -> str:

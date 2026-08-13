@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 """
-SmartShop Deploy Readiness Checker
+DealBursa Deploy Readiness Checker
 Runs ALL checks automatically — env vars, DB, keys, templates, tests —
 and prints a clear "READY / MISSING X" report.
 
@@ -258,7 +258,7 @@ def main():
     parser.add_argument("--json", action="store_true", help="Output as JSON")
     args = parser.parse_args()
 
-    print(">> SmartShop Deploy Readiness Checker")
+    print(">> DealBursa Deploy Readiness Checker")
     start = time.time()
 
     try:

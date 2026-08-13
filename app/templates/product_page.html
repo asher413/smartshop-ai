@@ -16,10 +16,10 @@
   "name": {{ (product.seo_title or product.name or "")|tojson }},
   "description": {{ (product.description or "")|truncate(300)|tojson }},
   "image": {{ (product.image_url or "")|tojson }},
-  "sku": {{ ("smartshop_" ~ product.id)|tojson }},
+  "sku": {{ ("dealbursa_" ~ product.id)|tojson }},
   "brand": {
     "@type": "Brand",
-    "name": {{ (product.supplier_name or "סמארטשופ")|tojson }}
+    "name": {{ (product.supplier_name or "דילבורסה")|tojson }}
   },
   {% if product.rating and product.rating > 0 %}
   "aggregateRating": {

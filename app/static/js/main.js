@@ -1,4 +1,4 @@
-// SmartShop AI — shared frontend behavior.
+// DealBursa — shared frontend behavior.
 // Note: social proof and free-shipping progress use REAL numbers from the
 // API only. The original prototype padded click counts with
 // random.randint(10,50) and generated a random "N people bought this"

@@ -77,7 +77,7 @@ class Settings(BaseSettings):
     smtp_user: str = ""
     smtp_password: str = ""
     smtp_from_email: str = "no-reply@yourdomain.com"
-    smtp_from_name: str = "SmartShop"
+    smtp_from_name: str = "DealBursa"
 
     # --- Google OAuth (Sign in with Google) ---
     google_oauth_client_id: str = ""

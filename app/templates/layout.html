@@ -3,18 +3,18 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}סמארטשופ | בורסת הדילים החכמה{% endblock %}</title>
+    <title>{% block title %}דילבורסה | מצאו את הדיל הבא{% endblock %}</title>
     <meta name="description" content="{% block meta_description %}השוואת מחירים חכמה בסיוע טכנולוגי בין AliExpress, Amazon, eBay ו-Temu — הדילים החמים ביותר במקום אחד.{% endblock %}">
     {% block og_tags %}
-    <meta property="og:title" content="סמארטשופ | בורסת הדילים החכמה">
+    <meta property="og:title" content="דילבורסה | מצאו את הדיל הבא">
     <meta property="og:description" content="הדילים החמים ביותר מ-AliExpress, Amazon, eBay ועוד — מושווים אוטומטית ע\"י AI, במקום אחד.">
     <meta property="og:type" content="website">
     {% if site_url %}
     <meta property="og:url" content="{{ site_url }}{{ request.url.path }}">
     <meta property="og:image" content="{{ site_url }}/static/og-cover.png">
     <meta property="og:locale" content="he_IL">
-    <meta property="og:site_name" content="סמארטשופ">
-    <meta name="twitter:title" content="סמארטשופ">
+    <meta property="og:site_name" content="דילבורסה">
+    <meta name="twitter:title" content="דילבורסה">
     <meta name="twitter:description" content="הדילים החמים ביותר, מושווים אוטומטית ע\"י AI.">
     <meta name="twitter:image" content="{{ site_url }}/static/og-cover.png">
     <meta name="robots" content="index, follow">
@@ -28,13 +28,13 @@
       "@graph": [
         {
           "@type": "Organization",
-          "name": "סמארטשופ",
+          "name": "דילבורסה",
           "url": {{ site_url|tojson }},
           "logo": {{ (site_url ~ "/static/logo.png")|tojson }}
         },
         {
           "@type": "WebSite",
-          "name": "סמארטשופ",
+          "name": "דילבורסה",
           "url": {{ site_url|tojson }},
           "potentialAction": {
             "@type": "SearchAction",
@@ -64,7 +64,7 @@
         <!-- Row 1: logo | search+camera | account/cart -->
         <div class="container mx-auto px-4 py-2 flex items-center justify-between gap-3">
             <a href="/" class="ae-logo flex items-center gap-1 shrink-0">
-                סמארטשופ
+                דילבורסה
             </a>
 
             <div class="hidden md:block flex-1 max-w-xl mx-auto">
@@ -222,7 +222,7 @@
                 <button type="submit" class="btn-primary px-5 py-2 rounded-lg text-sm font-bold">הרשמה</button>
             </form>
             <p id="newsletter-message" class="text-xs"></p>
-            <p>סמארטשופ — בורסת דילים חכמה בסיוע מערכת השוואת מחירים מתקדמת.</p>
+            <p>דילבורסה — בורסת דילים חכמה בסיוע מערכת השוואת מחירים מתקדמת.</p>
             <p class="text-xs">{{ affiliate_disclosure or "האתר כולל קישורי שותפים (Affiliate). ייתכן שנקבל עמלה מרכישות דרך הקישורים שלנו, ללא עלות נוספת עבורך." }}</p>
             <p class="text-[10px] text-gray-300">As an Amazon Associate I earn from qualifying purchases.</p>
             <div class="flex justify-center gap-4 text-xs text-gray-500">
@@ -580,7 +580,7 @@
         <div class="flex items-center gap-3">
             <span class="text-2xl"><i class="fa-solid fa-mobile-screen-button"></i></span>
             <div>
-                <p class="font-bold text-sm text-gray-900">התקינו את סמארטשופ כאפליקציה</p>
+                <p class="font-bold text-sm text-gray-900">התקינו את דילבורסה כאפליקציה</p>
                 <p class="text-xs text-gray-500">גישה מהירה, גם בלי אינטרנט</p>
             </div>
         </div>

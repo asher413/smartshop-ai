@@ -1,5 +1,5 @@
 # =============================================================================
-# SmartShop AI — Koyeb Lightweight Dockerfile (fits in 512 MB free tier)
+# DealBursa — Koyeb Lightweight Dockerfile (fits in 512 MB free tier)
 #
 # No Playwright/Chromium (would OOM in 512MB)
 # No ChromaDB (uses SQLite-in-WAL or external Postgres)

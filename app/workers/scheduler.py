@@ -65,5 +65,5 @@ def interest_pull_cleanup_job():
 
 
 if __name__ == "__main__":
-    logger.info("Starting SmartShop AI background scheduler...")
+    logger.info("Starting DealBursa background scheduler...")
     scheduler.start()

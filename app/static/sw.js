@@ -1,8 +1,8 @@
-// SmartShop Service Worker — PWA offline support
+// DealBursa Service Worker — PWA offline support
 // Caches static assets + key pages so the site works even without internet.
 // Strategy: Cache-first for static assets, Network-first for dynamic pages.
 
-const CACHE_NAME = 'smartshop-v2';
+const CACHE_NAME = 'dealbursa-v2';
 const STATIC_ASSETS = [
     '/',
     '/static/css/design_system.css',
@@ -96,7 +96,7 @@ self.addEventListener('fetch', (event) => {
 // Push notifications — full Web Push API support with actions
 self.addEventListener('push', (event) => {
     const data = event.data ? event.data.json() : {};
-    const title = data.title || 'סמארטשופ';
+    const title = data.title || 'דילבורסה';
     const options = {
         body: data.message || 'דיל חדש מחכה לכם!',
         icon: '/static/icon-192.png',
@@ -109,7 +109,7 @@ self.addEventListener('push', (event) => {
         ],
         // Require explicit user interaction to dismiss (not auto-dismiss)
         requireInteraction: data.requireInteraction || false,
-        tag: data.tag || 'smartshop-deal',  // dedup same notification
+        tag: data.tag || 'dealbursa-deal',  // dedup same notification
         vibrate: [200, 100, 200],
     };
     event.waitUntil(self.registration.showNotification(title, options));

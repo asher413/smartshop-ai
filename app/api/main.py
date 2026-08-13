@@ -54,7 +54,7 @@ from app.agents.auto_viral_engine import AutoViralEngine
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-app = FastAPI(title="SmartShop")
+app = FastAPI(title="DealBursa")
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
@@ -973,7 +973,7 @@ def home(
         "has_prev_page": page > 1,
         "total_count": total_count,
         "recently_viewed": recently_viewed[:8],
-        "banner": {"title": "סמארטשופ", "subtitle": "בורסת הדילים — נבחרים על ידי הצוות שלנו"},
+        "banner": {"title": "דילבורסה", "subtitle": "בורסת הדילים — נבחרים על ידי הצוות שלנו"},
         "category_thumbnails": _get_category_thumbnails(db),
         "affiliate_disclosure": "האתר כולל קישורי שותפים (Affiliate). אנו עשויים לקבל עמלה מרכישות דרך הקישורים שלנו, ללא עלות נוספת עבורך.",
         "site_url": settings.site_url,
@@ -2214,7 +2214,7 @@ def offline_page(request: Request):
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>סמארטשופ — אין חיבור לאינטרנט</title>
+    <title>דילבורסה — אין חיבור לאינטרנט</title>
     <style>
         body {{ font-family: -apple-system, 'Segoe UI', sans-serif; background: #f8fafc; color: #0f172a; display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; text-align: center; }}
         .card {{ background: #fff; border-radius: 1rem; padding: 2rem; max-width: 400px; box-shadow: 0 10px 30px rgba(0,0,0,0.08); }}
@@ -2295,10 +2295,10 @@ async def whatsapp_webhook_receive(request: Request):
                     reply = "👋 הסרנו אתכם מרשימת ההתראות. תמיד תוכלו לחזור — פשוט שלחו 'הרשמה'."
                 elif text:
                     reply = (
-                        "👋 היי! ברוכים הבאים לסמארטשופ.\n\n"
+                        "👋 היי! ברוכים הבאים לדילבורסה.\n\n"
                         "שלחו 'הרשמה' כדי לקבל דיל אחד חם ביום 📦\n"
                         "שלחו 'ביטול' להסרה.\n\n"
-                        "חפשו דילים באתר: smartshop.co.il"
+                        "חפשו דילים באתר: דילבורסה"
                     )
 
                 if reply and settings.whatsapp_phone_number_id and settings.whatsapp_access_token:
@@ -2470,9 +2470,9 @@ def google_shopping_feed(db: Session = Depends(get_db)):
         desc = escape((p.description or p.name or "")[:5000])
         link = escape(f"{settings.site_url}/product/{p.id}")
         img = escape(p.image_url or "")
-        brand = escape((p.supplier_name or "SmartShop")[:70])
+        brand = escape((p.supplier_name or "DealBursa")[:70])
         avail = "in stock" if (p.stock_count or 0) > 0 else "out of stock"
-        gid = f"smartshop_{p.id}"
+        gid = f"dealbursa_{p.id}"
         gcat = escape(GOOGLE_CATEGORY.get(p.category or "", "Other"))
         items.append(f"""  <item>
     <g:id>{gid}</g:id>
@@ -2493,7 +2493,7 @@ def google_shopping_feed(db: Session = Depends(get_db)):
         "<channel>\n"
         f"<title>{escape(settings.site_url)}</title>\n"
         f"<link>{escape(settings.site_url)}</link>\n"
-        "<description>SmartShop — דילים חמים עם השוואת מחירים</description>\n"
+        "<description>DealBursa — דילים חמים עם השוואת מחירים</description>\n"
         + "\n".join(items)
         + "\n</channel>\n</rss>"
     )
@@ -2884,7 +2884,7 @@ def admin_candidates(db: Session = Depends(get_db), _auth: bool = Depends(requir
 def about_page(request: Request):    return templates.TemplateResponse("about.html", {
         "request": request,
         "contact_email": settings.smtp_from_email or settings.admin_email or "hello@yourdomain.com",
-        "site_name": "SmartShop",
+        "site_name": "DealBursa",
     })
 
 
@@ -2967,10 +2967,10 @@ def _team_email_list() -> list[str]:
 
 
 HELP_FAQS = [
-    ("מה זה סמארטשופ?", "בורסת דילים חכמה שמשווה מחירים בין AliExpress, Amazon, eBay, Temu ועוד — ומוצאת עבורכם את העסקה הכי משתלמת, עם קישורי עמלה שקופים."),
+    ("מה זה דילבורסה?", "בורסת דילים חכמה שמשווה מחירים בין AliExpress, Amazon, eBay, Temu ועוד — ומוצאת עבורכם את העסקה הכי משתלמת, עם קישורי עמלה שקופים."),
     ("האם השימוש באתר עולה כסף?", "לא. הגלישה, החיפוש, השוואת המחירים והצ'אט חינמיים לחלוטין. אנחנו מרוויחים מעמלת שותפים קטנה כשאתם קונים דרך הקישורים שלנו — ללא עלות נוספת עבורכם."),
     ("כמה זמן לוקח המשלוח?", "בדרך כלל 7–21 ימי עסקים לפי הספק. בעמוד המוצר מוצג הערכת זמן משלוח (shipping_days) ולכל הזמנה יש מעקב באזור האישי."),
-    ("מה עושים אם המוצר לא מגיע או מגיע פגום?", "אפשר לפתוח תביעה ישירות מול הספק שממנו קניתם. סמארטשופ הוא אתר אפילאייט שמשווה מחירים וממליץ על דילים — לא חנות שמוכרת ישירות, ולכן האחריות והמשלוח הם באחריות הספק. עם זאת, רוב הספקים הגדולים (AliExpress, eBay, Amazon) מציעים הגנת קונה ומדיניות החזרות. נשמח לכוון אתכם — פנו אלינו בצ'אט."),
+    ("מה עושים אם המוצר לא מגיע או מגיע פגום?", "אפשר לפתוח תביעה ישירות מול הספק שממנו קניתם. דילבורסה הוא אתר אפילאייט שמשווה מחירים וממליץ על דילים — לא חנות שמוכרת ישירות, ולכן האחריות והמשלוח הם באחריות הספק. עם זאת, רוב הספקים הגדולים (AliExpress, eBay, Amazon) מציעים הגנת קונה ומדיניות החזרות. נשמח לכוון אתכם — פנו אלינו בצ'אט."),
     ("איך מתבצעים ההחזרות?", "לפי מדיניות ההחזרה של הספק (ברוב הספקים 15–90 יום). פרטי ההחזרה המלאים מופיעים בעמוד המוצר ובמדיניות ההחזרות."),
     ("איך מקבלים מטבעות (🪙)?", "הרשמה (+50), אימות אימייל (+30), שמירת מוצר ראשון למועדפים (+20), קליקים על עסקאות (עד 10 ליום), והתראות מחיר. המטבעות מתועדים במערכת — אפשר לראות כל עסקה באזור האישי."),
     ("איך מגדירים התראת מחיר?", "בעמוד המוצר לוחצים על 'התראת מחיר', מזינים את המחיר הרצוי, ונקבל הודעה ברגע שהמחיר יורד מתחת לסף."),
@@ -3092,7 +3092,7 @@ def privacy_page(request: Request):
     return templates.TemplateResponse("privacy.html", {
         "request": request,
         "contact_email": settings.smtp_from_email or settings.admin_email or "hello@yourdomain.com",
-        "site_name": "SmartShop",
+        "site_name": "DealBursa",
     })
 
 
@@ -3101,5 +3101,5 @@ def terms_page(request: Request):
     return templates.TemplateResponse("terms.html", {
         "request": request,
         "contact_email": settings.smtp_from_email or settings.admin_email or "hello@yourdomain.com",
-        "site_name": "SmartShop",
+        "site_name": "DealBursa",
     })

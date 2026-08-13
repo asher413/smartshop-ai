@@ -66,7 +66,7 @@ class AwinAdapter(BaseSupplierAdapter):
         # Awin's standard deep-link wrapper format
         return (
             f"https://www.awin1.com/cread.php?awinmid=MERCHANT_ID&awinaffid={self.publisher_id}"
-            f"&clickref=smartshopai&p={requests.utils.quote(raw_url, safe='')}"
+            f"&clickref=dealbursa&p={requests.utils.quote(raw_url, safe='')}"
         )
 
     def fetch_coupons(self, limit: int = 20) -> list[dict]:

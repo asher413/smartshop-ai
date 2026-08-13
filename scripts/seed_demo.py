@@ -259,7 +259,7 @@ def seed(db) -> dict:
         link="/",
         is_popup=True,
     ))
-    db.add(Notification(title="🎉 ברוכים הבאים ל-SmartShop המערכת", message="צברו מטבעות על קליקים, שמירת מוצרים והתראות מחיר. הצטרפו עם חשבון Google או במייל!"))
+    db.add(Notification(title="🎉 ברוכים הבאים לדילבורסה", message="צברו מטבעות על קליקים, שמירת מוצרים והתראות מחיר. הצטרפו עם חשבון Google או במייל!"))
     db.add(Notification(title="💰 מה אפשר לעשות עם מטבעות?", message="מטבעות נותנים דרגות: Bronze Hunter 🥉 ועד Deal Legend 👑. כל קליק שווה 1 מטבע!"))
     db.add(Notification(title="🤖 הכירו את החיפוש החכם", message="כתבו \"אני מחפש מתנה לילד גיל 5\" — וה-AI ימצא מוצרים מתאימים עם הסבר."))
 
