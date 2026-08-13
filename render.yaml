@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: smartshop-ai
+    name: smartshop
     runtime: python
     plan: free
     region: frankfurt
@@ -14,8 +14,10 @@ services:
         value: ""
       - key: ENV
         value: production
+      - key: PYTHON_VERSION
+        value: 3.11.11
       - key: SITE_URL
-        value: https://smartshop-ai.onrender.com
+        value: https://smartshop-8jtv.onrender.com
       - key: ADMIN_EMAIL
         value: admin@smartshop.ai
       - key: ADMIN_SECRET_KEY
