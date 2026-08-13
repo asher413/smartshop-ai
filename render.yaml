@@ -15,7 +15,7 @@ services:
       - key: ENV
         value: production
       - key: SITE_URL
-        sync: false
+        value: https://smartshop-ai.onrender.com
       - key: ADMIN_EMAIL
         value: admin@smartshop.ai
       - key: ADMIN_SECRET_KEY
