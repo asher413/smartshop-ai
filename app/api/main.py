@@ -1851,6 +1851,80 @@ def admin_dashboard(request: Request, db: Session = Depends(get_db)):
     })
 
 
+@app.get("/admin/analytics")
+def admin_analytics(request: Request, db: Session = Depends(get_db)):
+    """First-party engagement analytics: searches, product clicks, product
+    views and page views over the last 30 days, with a daily breakdown for
+    the chart. Aggregated in Python (not raw SQL JSON ops) so it works on
+    both SQLite and Postgres."""
+    if not _is_admin(request):
+        return RedirectResponse("/admin/login", status_code=303)
+    from collections import Counter, defaultdict
+
+    since = datetime.datetime.utcnow() - datetime.timedelta(days=30)
+    events = (
+        db.query(AnalyticsEvent)
+        .filter(AnalyticsEvent.created_at >= since)
+        .order_by(AnalyticsEvent.created_at.desc())
+        .limit(20000)
+        .all()
+    )
+
+    totals = Counter()
+    daily = defaultdict(lambda: defaultdict(int))
+    search_terms = []
+    click_pids = Counter()
+    view_pids = Counter()
+
+    for e in events:
+        totals[e.event_name] += 1
+        day = e.created_at.strftime("%Y-%m-%d")
+        daily[day][e.event_name] += 1
+        p = e.payload if isinstance(e.payload, dict) else {}
+        if e.event_name == "search":
+            term = str(p.get("search_term") or "").strip()
+            if term:
+                search_terms.append(term)
+        elif e.event_name in ("click_product", "view_item"):
+            try:
+                pid = int(str(p.get("product_id")))
+            except (TypeError, ValueError):
+                pid = None
+            if pid:
+                (click_pids if e.event_name == "click_product" else view_pids)[pid] += 1
+
+    top_terms = Counter(search_terms).most_common(10)
+
+    def _resolve(counter, limit=10):
+        top = counter.most_common(limit)
+        if not top:
+            return []
+        ids = [pid for pid, _ in top]
+        names = {p.id: p.name for p in db.query(Product).filter(Product.id.in_(ids)).all()}
+        return [(names.get(pid, f"#{pid}"), cnt) for pid, cnt in top]
+
+    top_clicked = _resolve(click_pids)
+    top_viewed = _resolve(view_pids)
+
+    days = []
+    for i in range(13, -1, -1):
+        d = (datetime.datetime.utcnow() - datetime.timedelta(days=i)).date()
+        key = d.strftime("%Y-%m-%d")
+        counts = dict(daily.get(key, {}))
+        days.append({"label": d.strftime("%d/%m"), "counts": counts, "total": sum(counts.values())})
+
+    return templates.TemplateResponse("admin_analytics.html", {
+        "request": request,
+        "totals": dict(totals),
+        "total_30d": sum(totals.values()),
+        "top_terms": top_terms,
+        "top_clicked": top_clicked,
+        "top_viewed": top_viewed,
+        "days": days,
+        "max_day_total": max((d["total"] for d in days), default=0) or 1,
+    })
+
+
 @app.get("/admin/reports")
 def admin_reports(request: Request, db: Session = Depends(get_db)):
     """Analytics dashboard: supplier distribution, daily clicks, revenue,

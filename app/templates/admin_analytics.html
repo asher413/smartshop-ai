@@ -1,0 +1,126 @@
+{% extends "layout.html" %}
+{% block title %}אנליטיקס | דילבורסה{% endblock %}
+{% block content %}
+{% set colors = {'search': 'bg-indigo-400', 'click_product': 'bg-green-400', 'view_item': 'bg-amber-400', 'page_view': 'bg-cyan-400'} %}
+{% set labels = {'search': 'חיפושים', 'click_product': 'קליקים על מוצרים', 'view_item': 'צפיות מוצרים', 'page_view': 'צפיות עמודים'} %}
+<div class="container mx-auto px-4 py-8 space-y-8">
+    <div class="flex items-center justify-between flex-wrap gap-3">
+        <h1 class="text-2xl font-black">📈 אנליטיקס — משיכה אמיתית</h1>
+        <a href="/admin" class="glass-card px-4 py-2 rounded-xl text-sm font-bold hover:border-indigo-400/40 transition">← לוח בקרה</a>
+    </div>
+
+    <p class="text-xs text-gray-400 -mt-4">
+        נמדד מהאתר עצמו (אירועי צד-ראשון) — בלי עיכוב של צד שלישי. 30 הימים האחרונים.
+    </p>
+
+    <!-- KPI cards -->
+    <div class="grid grid-cols-2 md:grid-cols-5 gap-4">
+        <div class="glass-card p-4 text-center">
+            <p class="text-xs text-gray-400">סה"כ אירועים (30 יום)</p>
+            <p class="text-2xl font-black text-indigo-300">{{ total_30d }}</p>
+        </div>
+        <div class="glass-card p-4 text-center">
+            <p class="text-xs text-gray-400">חיפושים</p>
+            <p class="text-2xl font-black text-indigo-400">{{ totals.get('search', 0) }}</p>
+        </div>
+        <div class="glass-card p-4 text-center">
+            <p class="text-xs text-gray-400">קליקים על מוצרים</p>
+            <p class="text-2xl font-black text-green-400">{{ totals.get('click_product', 0) }}</p>
+        </div>
+        <div class="glass-card p-4 text-center">
+            <p class="text-xs text-gray-400">צפיות מוצרים</p>
+            <p class="text-2xl font-black text-amber-400">{{ totals.get('view_item', 0) }}</p>
+        </div>
+        <div class="glass-card p-4 text-center">
+            <p class="text-xs text-gray-400">צפיות עמודים</p>
+            <p class="text-2xl font-black text-cyan-400">{{ totals.get('page_view', 0) }}</p>
+        </div>
+    </div>
+
+    <!-- Daily chart -->
+    <div class="glass-card p-6">
+        <div class="flex items-center justify-between flex-wrap gap-3 mb-4">
+            <h3 class="font-bold text-lg">📅 פעילות יומית (14 יום אחרונים)</h3>
+            <div class="flex flex-wrap gap-3 text-xs">
+                {% for k, lbl in labels.items() %}
+                <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-sm {{ colors.get(k, 'bg-gray-500') }}"></span> {{ lbl }}</span>
+                {% endfor %}
+            </div>
+        </div>
+
+        {% if total_30d > 0 %}
+        <div class="flex items-end gap-1 h-48" dir="ltr">
+            {% for d in days %}
+            <div class="flex-1 flex flex-col justify-end h-full min-w-0" title="{{ d.label }}: {{ d.total }} אירועים">
+                <div class="w-full rounded-t flex flex-col justify-end overflow-hidden bg-white/5" style="height: {{ ((d.total / max_day_total) * 100) | round(1) }}%">
+                    {% if d.total > 0 %}
+                    {% for k, v in d.counts.items() %}
+                    <div class="w-full {{ colors.get(k, 'bg-gray-500') }}" style="height: {{ ((v / d.total) * 100) | round(1) }}%"></div>
+                    {% endfor %}
+                    {% endif %}
+                </div>
+                <span class="text-[9px] text-gray-500 text-center mt-1">{{ d.label }}</span>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="text-center text-gray-500 py-16">
+            <p class="text-4xl mb-3">📭</p>
+            <p class="font-bold">עדיין אין אירועים</p>
+            <p class="text-xs mt-1">ברגע שמבקרים ייכנסו לאתר, יופיעו כאן חיפושים, קליקים וצפיות.</p>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Top lists -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div class="glass-card p-6">
+            <h3 class="font-bold text-lg mb-4">🔎 החיפושים הפופולריים</h3>
+            {% if top_terms %}
+            <ul class="space-y-2 text-sm">
+                {% for term, cnt in top_terms %}
+                <li class="flex items-center justify-between bg-white/5 rounded-lg px-3 py-2">
+                    <span class="truncate">{{ term }}</span>
+                    <span class="text-indigo-300 font-bold shrink-0">{{ cnt }}</span>
+                </li>
+                {% endfor %}
+            </ul>
+            {% else %}
+            <p class="text-xs text-gray-500">אין עדיין חיפושים.</p>
+            {% endif %}
+        </div>
+
+        <div class="glass-card p-6">
+            <h3 class="font-bold text-lg mb-4">🛒 מוצרים שנלחצו הכי הרבה</h3>
+            {% if top_clicked %}
+            <ul class="space-y-2 text-sm">
+                {% for name, cnt in top_clicked %}
+                <li class="flex items-center justify-between bg-white/5 rounded-lg px-3 py-2">
+                    <span class="truncate">{{ name }}</span>
+                    <span class="text-green-400 font-bold shrink-0">{{ cnt }}</span>
+                </li>
+                {% endfor %}
+            </ul>
+            {% else %}
+            <p class="text-xs text-gray-500">אין עדיין קליקים.</p>
+            {% endif %}
+        </div>
+
+        <div class="glass-card p-6">
+            <h3 class="font-bold text-lg mb-4">👀 מוצרים שנצפו הכי הרבה</h3>
+            {% if top_viewed %}
+            <ul class="space-y-2 text-sm">
+                {% for name, cnt in top_viewed %}
+                <li class="flex items-center justify-between bg-white/5 rounded-lg px-3 py-2">
+                    <span class="truncate">{{ name }}</span>
+                    <span class="text-amber-400 font-bold shrink-0">{{ cnt }}</span>
+                </li>
+                {% endfor %}
+            </ul>
+            {% else %}
+            <p class="text-xs text-gray-500">אין עדיין צפיות במוצרים.</p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
