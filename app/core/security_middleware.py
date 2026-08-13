@@ -133,11 +133,20 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         # probes send no browser UA, and the endpoint has zero side effects
         # — blocking it would make healthCheckPath never see a 200 and
         # trigger a restart loop.
+        # Scheduled discovery cron: GitHub Actions hits /api/cron/discovery
+        # with a bare curl UA and a dedicated X-Cron-Token. A valid token
+        # means it's our own scheduler, not a bot — let it through the guard
+        # (the route itself re-checks the token).
+        has_valid_cron_token = False
+        if request.url.path == "/api/cron/discovery":
+            cron_token = request.headers.get("x-cron-token", "")
+            if settings.cron_secret and secrets.compare_digest(cron_token, settings.cron_secret):
+                has_valid_cron_token = True
         is_health_probe = request.url.path == "/healthz"
         # Image proxy is a public CDN-like endpoint — any client should be
         # able to fetch product images (browsers, curl, image-pipeline jobs).
         is_image_proxy = request.url.path.startswith("/img/")
-        if is_health_probe or is_image_proxy or has_valid_admin_auth or is_real_browser or is_documented_crawler:
+        if is_health_probe or is_image_proxy or has_valid_admin_auth or has_valid_cron_token or is_real_browser or is_documented_crawler:
             risk = 0
         else:
             # Bare bot tooling (curl, wget, python-requests, headless scrapers):
