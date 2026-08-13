@@ -146,7 +146,16 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         # Image proxy is a public CDN-like endpoint — any client should be
         # able to fetch product images (browsers, curl, image-pipeline jobs).
         is_image_proxy = request.url.path.startswith("/img/")
-        if is_health_probe or is_image_proxy or has_valid_admin_auth or has_valid_cron_token or is_real_browser or is_documented_crawler:
+        # Google ownership verification (Search Console / Merchant Center
+        # "HTML file" method) fetches /googleXXXX.html with a
+        # "Google-Site-Verification/1.0"-style UA — not a browser and not
+        # literally "googlebot" — so a bot-guard block here would make
+        # ownership verification fail with "couldn't find your file".
+        is_verify_file = (
+            request.url.path.rstrip("/").rsplit("/", 1)[-1].startswith("google")
+            and request.url.path.endswith(".html")
+        )
+        if is_health_probe or is_image_proxy or is_verify_file or has_valid_admin_auth or has_valid_cron_token or is_real_browser or is_documented_crawler:
             risk = 0
         else:
             # Bare bot tooling (curl, wget, python-requests, headless scrapers):

@@ -12,7 +12,7 @@ import time
 
 import requests
 from fastapi import FastAPI, Request, Depends, Form, BackgroundTasks, HTTPException, Header, UploadFile, File
-from fastapi.responses import RedirectResponse, JSONResponse, Response, PlainTextResponse
+from fastapi.responses import RedirectResponse, JSONResponse, Response, PlainTextResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from starlette.middleware.sessions import SessionMiddleware
@@ -3228,3 +3228,47 @@ def terms_page(request: Request):
         "contact_email": settings.smtp_from_email or settings.admin_email or "hello@yourdomain.com",
         "site_name": "DealBursa",
     })
+
+
+# ── Google site-verification files (HTML-file method) ─────────────────────
+# Search Console / Merchant Center "HTML file upload" verification hands you a
+# file like `google6d1234abcd.html` (content: `google-site-verification: ...`)
+# that must be served from the site ROOT (https://site/googleXXXX.html).
+# We register a regex-matched route rather than a catch-all /{filename}, so a
+# GET to any other single-segment path (e.g. the POST-only /logout) keeps its
+# correct 405 semantics instead of being shadowed into a 404.
+import re as _re
+from starlette.routing import Route as _Route, Match as _Match
+
+_VERIFY_DIR = os.path.join(os.path.dirname(__file__), "..", "static", "verify")
+_VERIFY_FILE_RE = _re.compile(r"^/google[A-Za-z0-9]+\.html$")
+
+
+def _serve_verify_file(request) -> Response:
+    filename = request.path_params["filename"]
+    # Re-validate defensively: only ever serve `googleXXXX.html` from the
+    # verify dir (blocked traversal via the regex + isfile check below).
+    path = os.path.join(_VERIFY_DIR, filename)
+    if not os.path.isfile(path):
+        raise HTTPException(status_code=404, detail="Not found")
+    return FileResponse(path, media_type="text/html", headers={"Cache-Control": "public, max-age=3600"})
+
+
+class _VerifyFileRoute(_Route):
+    """Serves `googleXXXX.html` ownership-verification files from the site
+    root. FULL-matches only that exact pattern, so it can never shadow any
+    other route in the table."""
+
+    def __init__(self):
+        super().__init__("/{filename}", _serve_verify_file, methods=["GET"])
+
+    def matches(self, scope):
+        if scope["type"] != "http" or scope.get("method") not in ("GET", "HEAD"):
+            return _Match.NONE, {}
+        path = scope.get("path", "")
+        if not _VERIFY_FILE_RE.fullmatch(path):
+            return _Match.NONE, {}
+        return _Match.FULL, {"endpoint": _serve_verify_file, "path_params": {"filename": path[1:]}}
+
+
+app.router.routes.append(_VerifyFileRoute())
